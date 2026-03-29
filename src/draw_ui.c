@@ -5,14 +5,10 @@
 #include <string.h>
 #include <stddef.h>
 
-static Font ui_font;
+extern Font ui_font; // используем шрифт из draw.c
 
 void init_ui_font(void) {
-    ui_font = LoadFontEx("data/fonts/Symbola.ttf", 24, NULL, 0);
-    if (ui_font.texture.id == 0) {
-        TraceLog(LOG_WARNING, "Symbola.ttf not found! Using default font.");
-        ui_font = GetFontDefault();
-    }
+    // Шрифт уже инициализирован в draw.c через init_ui_font_internal()
 }
 
 void draw_ui(const WorldState* world) {

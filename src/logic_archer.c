@@ -82,7 +82,7 @@ void logic_archer_harvest_arrows(Character* archer, WorldState* world) {
                 }
             }
             archer->arrows += 2;
-            sound_play(SOUND_HARVEST_WOOD);
+            sound_play(SOUND_ARROW_HARVEST_WOOD);
             return;
         }
 
@@ -90,7 +90,7 @@ void logic_archer_harvest_arrows(Character* archer, WorldState* world) {
         if (world->blocks[y][x].type == BLOCK_LEAFS) {
             world->blocks[y][x].type = BLOCK_AIR;
             archer->arrows += 1;
-            sound_play(SOUND_HARVEST_LEAFS);
+            sound_play(SOUND_ARROW_HARVEST_LEAFS);
         }
     }
 }

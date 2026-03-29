@@ -1,6 +1,7 @@
 // debug_console.c
 #include "debug_console.h"
 #include "raylib.h"
+#include "draw.h"  // для get_frame_counter()
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -92,7 +93,7 @@ void draw_debug_console(void) {
 
     // Курсор
     int cursor_x = 10 + MeasureText("> ", 20) + MeasureText(input_buffer, 20);
-    if ((GetFrameCounter() / 15) % 2 == 0) {
+    if ((get_frame_counter() / 15) % 2 == 0) {
         DrawText("|", cursor_x, 10, 20, GREEN);
     }
 }

@@ -5,8 +5,12 @@
 #include "common_game.h"
 #include "raylib.h"
 
-// Инициализация шрифтов для UI
-void init_ui_font(void);
+// Глобальный счётчик кадров
+int get_frame_counter(void);
+void increment_frame_counter(void);
+
+// Инициализация шрифтов для UI (внутренняя)
+void init_ui_font_internal(void);
 
 // Отрисовка фона (параллакс)
 void draw_background(WorldState* world);

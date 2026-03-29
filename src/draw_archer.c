@@ -2,6 +2,7 @@
 #include "draw_archer.h"
 #include "raylib.h"
 #include <string.h>
+#include <math.h>
 
 // Анимации лучника
 typedef struct {

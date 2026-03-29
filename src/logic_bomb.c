@@ -1,7 +1,9 @@
 // logic_bomb.c
 #include "logic_bomb.h"
+#include "logic_items.h"
 #include "sound.h"
 #include <math.h>
+#include <stddef.h>
 
 #define BOMB_RADIUS_PIXELS 32   // 2 блока = 32 пикс (если блок = 16x16)
 #define BOMB_GRAVITY 400.0f
