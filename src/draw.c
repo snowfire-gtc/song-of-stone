@@ -169,9 +169,3 @@ void draw_flag(Vector2 pos, Team team, bool carried) {
         flag_color
     );
 }
-
-void draw_debug_vectors(const WorldState* world) {
-    (void)world;
-    // Заглушка для отладочных векторов
-    // Реализуется при необходимости визуализации физики
-}
