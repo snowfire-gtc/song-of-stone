@@ -2,7 +2,7 @@
 #ifndef DRAW_ARCHER_H
 #define DRAW_ARCHER_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 // Инициализация текстур лучника
 void draw_archer_init(void);

@@ -2,7 +2,7 @@
 #ifndef DRAW_WORKER_H
 #define DRAW_WORKER_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 void draw_worker_init(void);
 void draw_worker_single(const Character* worker, int frame_counter, bool is_local);

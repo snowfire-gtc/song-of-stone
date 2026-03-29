@@ -2,6 +2,11 @@
 #include "draw_bomb.h"
 #include "raylib.h"
 #include <stdlib.h>
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
 
 // Глобальные текстуры
 static Texture2D bomb_texture = {0};

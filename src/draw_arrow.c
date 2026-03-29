@@ -3,6 +3,10 @@
 #include "raylib.h"
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
+
 static Texture2D arrow_texture = {0};
 static bool texture_loaded = false;
 
@@ -49,7 +53,8 @@ void draw_arrow_single(const Arrow* arrow) {
 }
 
 // Отрисовка всех стрел
-void draw_arrow_all(const WorldState* world) {
+void draw_arrow_all(const WorldState* world, int frame_counter) {
+    (void)frame_counter; // пока не используется, но оставлен для будущей анимации
     for (int i = 0; i < world->arrow_count; i++) {
         draw_arrow_single(&world->arrows[i]);
     }

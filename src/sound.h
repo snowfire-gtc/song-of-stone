@@ -2,8 +2,7 @@
 #ifndef SOUND_H
 #define SOUND_H
 
-#include "../../common_game.h"
-
+#include "common_game.h"
 
 // Перечисление всех звуковых событий (должно соответствовать твоему списку!)
 typedef enum {
@@ -59,9 +58,8 @@ typedef enum {
 } SoundId;
 
 
-
 // Инициализация всех звуков и музыки
-void sound_init(void);
+void init_sound(void);
 
 // Воспроизведение звука
 void sound_play(SoundId id);
@@ -74,3 +72,5 @@ void sound_update_music_intensity(const WorldState* world);
 
 // Освобождение ресурсов
 void sound_unload(void);
+
+#endif // SOUND_H

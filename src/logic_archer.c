@@ -1,6 +1,6 @@
 // logic_archer.c
 #include "logic_archer.h"
-#include "../sound/sound.h"
+#include "sound.h"
 #include <math.h>
 
 #define ARCHER_NORMAL_SPEED 130.0f
@@ -82,7 +82,7 @@ void logic_archer_harvest_arrows(Character* archer, WorldState* world) {
                 }
             }
             archer->arrows += 2;
-            play_sound(SOUND_HARVEST_WOOD);
+            sound_play(SOUND_HARVEST_WOOD);
             return;
         }
 
@@ -90,7 +90,7 @@ void logic_archer_harvest_arrows(Character* archer, WorldState* world) {
         if (world->blocks[y][x].type == BLOCK_LEAFS) {
             world->blocks[y][x].type = BLOCK_AIR;
             archer->arrows += 1;
-            play_sound(SOUND_HARVEST_LEAFS);
+            sound_play(SOUND_HARVEST_LEAFS);
         }
     }
 }
@@ -125,7 +125,7 @@ void logic_archer_take_damage(Character* archer, int damage) {
     if (archer->is_invulnerable) return;
     archer->hp -= damage;
     if (archer->hp < 0) archer->hp = 0;
-    play_sound(SOUND_PLAYER_HURT);
+    sound_play(SOUND_PLAYER_HURT);
 }
 
 // Падение на листву

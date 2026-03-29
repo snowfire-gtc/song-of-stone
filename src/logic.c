@@ -1,65 +1,99 @@
-void logic_update_characters() {
-    // В logic_update_characters()
-    if (ch->type == CHAR_WARRIOR) {
-        logic_warrior_update(ch, world, frame_counter);
+// src/logic.c
+#include "logic.h"
+#include <string.h>
 
-        // Пример: если нажата клавиша АТАКИ
-        if (IsKeyPressed(KEY_SPACE)) {
-            logic_warrior_perform_sword_attack(ch, world);
+void logic_update(WorldState* world, int frame_counter) {
+    (void)frame_counter;
+    
+    // Обновление персонажей
+    for (int i = 0; i < world->char_count; i++) {
+        Character* ch = &world->characters[i];
+        
+        // Гравитация
+        if (ch->y > 0) {
+            int block_x = ch->x / 16;
+            int block_y = ch->y / 16;
+            
+            Block* block_below = logic_get_block(world, block_x, block_y - 1);
+            if (block_below && block_below->type == BLOCK_AIR) {
+                ch->vy -= world->params.gravity * 0.016f;
+            }
         }
-
-        // Если нажата клавиша ЩИТА
-        if (IsKeyPressed(KEY_LEFT_CONTROL)) {
-            logic_warrior_toggle_shield(ch);
+        
+        // Применение скорости
+        ch->x += (int)(ch->vx * 0.016f);
+        ch->y += (int)(ch->vy * 0.016f);
+        
+        // Ограничение по карте
+        if (ch->x < 0) ch->x = 0;
+        if (ch->x >= world->params.width_blocks * 16) ch->x = world->params.width_blocks * 16 - 1;
+        
+        // Смерть при падении ниже нуля
+        if (ch->y < 0) {
+            ch->hp = 0;
         }
-
-        // Если заряжается бросок
-        if (IsKeyDown(KEY_X)) {
-            ch->is_charging = true;
+        
+        // Таймер неуязвимости
+        if (ch->is_invulnerable) {
+            ch->invuln_timer -= 0.016f;
+            if (ch->invuln_timer <= 0) {
+                ch->is_invulnerable = false;
+            }
         }
-        if (IsKeyReleased(KEY_X)) {
-            logic_warrior_throw_bomb(ch, world, ch->charge_time);
-            ch->is_charging = false;
-            ch->charge_time = 0;
+        
+        // Кислород в воде
+        int head_block_y = (ch->y + 32) / 16;
+        int feet_block_y = ch->y / 16;
+        int block_x = ch->x / 16;
+        
+        Block* head_block = logic_get_block(world, block_x, head_block_y);
+        Block* feet_block = logic_get_block(world, block_x, feet_block_y);
+        
+        if (head_block && feet_block && 
+            head_block->type == BLOCK_WATER && feet_block->type == BLOCK_WATER) {
+            ch->oxygen--;
+            if (ch->oxygen <= 0) {
+                ch->hp--;
+                ch->oxygen = 0;
+            }
+        } else {
+            if (ch->oxygen < PLAYER_OXYGEN_MAX) {
+                ch->oxygen++;
+            }
         }
     }
-    // В logic_update_characters()
-    if (ch->type == CHAR_ARCHER) {
-        logic_archer_update(ch, world, frame_counter);
-
-        // Натяжка лука
-        if (IsKeyDown(KEY_SPACE)) {
-            ch->is_aiming = true;
-        }
-        if (IsKeyReleased(KEY_SPACE)) {
-            logic_archer_shoot_arrow(ch, world, ch->aim_time);
-        }
-
-        // Добыча стрел (удар — например, клавиша E)
-        if (IsKeyPressed(KEY_E)) {
-            logic_archer_harvest_arrows(ch, world);
-        }
-
-        // Начало лазания (если рядом дерево/стена и нажат W/A/S/D + SHIFT)
-        if (IsKeyDown(KEY_LEFT_SHIFT)) {
-            int x = ch->x / 16;
-            int y = ch->y / 16;
-            if (logic_archer_can_climb_block(world->blocks[y][x].type)) {
-                ch->is_climbing = true;
-                ch->climbing_block_x = x;
-            }
+    
+    // Обновление предметов
+    for (int i = 0; i < world->item_count; i++) {
+        DroppedItem* item = &world->items[i];
+        if (item->is_picked_up) continue;
+        
+        // Гравитация для предметов
+        item->y += (int)(item->vy * 0.016f);
+        item->vy -= world->params.gravity * 0.016f;
+        
+        if (item->y < 0) {
+            item->y = 0;
+            item->vy = 0;
         }
     }
 }
 
+bool logic_check_collision(int x, int y, BlockType block) {
+    return (block != BLOCK_AIR && block != BLOCK_WATER && block != BLOCK_LEAFS);
+}
 
-// В logic_update()
-void logic_update(WorldState* world, int frame_counter) {
-    float delta_time = 1.0f / 60.0f; // или GetFrameTime()
+Block* logic_get_block(WorldState* world, int x, int y) {
+    if (x < 0 || x >= WORLD_MAX_WIDTH || y < 0 || y >= WORLD_MAX_HEIGHT) {
+        return NULL;
+    }
+    return &world->blocks[y][x];
+}
 
-    // Обновление бомб
-    logic_bomb_update_all(world, delta_time);
-
-    // Удаление взорванных бомб (или пометка)
-    // (можно добавить "время жизни после взрыва" для визуала)
+void logic_set_block(WorldState* world, int x, int y, BlockType type) {
+    if (x >= 0 && x < world->params.width_blocks && 
+        y >= 0 && y < world->params.height_blocks) {
+        world->blocks[y][x].type = type;
+        world->blocks[y][x].has_grass = false;
+    }
 }

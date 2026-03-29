@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include <math.h>
 
+#include <stddef.h>
 #define MUSIC_TRANSITION_TIME 3.0f // секунды на плавный переход
 
 static Sound sounds[SOUND_MAX_COUNT] = {0};
@@ -21,7 +22,7 @@ static Sound load_sound_safe(const char* path) {
 }
 
 // Инициализация
-void sound_init(void) {
+void init_sound(void) {
     // Звуки меча
     sounds[SOUND_SWORD_HIT_WOOD]   = load_sound_safe("data/sounds/sword/hit_wood.ogg");
     sounds[SOUND_SWORD_HIT_STONE]  = load_sound_safe("data/sounds/sword/hit_stone.ogg");

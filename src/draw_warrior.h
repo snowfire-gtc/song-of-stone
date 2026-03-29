@@ -2,7 +2,7 @@
 #ifndef DRAW_WARRIOR_H
 #define DRAW_WARRIOR_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 // Инициализация текстур воина
 void draw_warrior_init(void);

@@ -1,6 +1,6 @@
 // logic_bomb.c
 #include "logic_bomb.h"
-#include "../sound/sound.h"
+#include "sound.h"
 #include <math.h>
 
 #define BOMB_RADIUS_PIXELS 32   // 2 блока = 32 пикс (если блок = 16x16)
@@ -82,7 +82,7 @@ void logic_bomb_explode(WorldState* world, int bomb_index) {
     if (bomb->exploded) return;
 
     bomb->exploded = true;
-    play_sound(SOUND_BOMB_EXPLODE);
+    sound_play(SOUND_BOMB_EXPLODE);
 
     int center_x = bomb->x;
     int center_y = bomb->y;

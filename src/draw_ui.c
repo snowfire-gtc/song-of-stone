@@ -1,6 +1,9 @@
 // src/draw/draw_ui.c
 #include "raylib.h"
-#include "../../common_game.h"
+#include "common_game.h"
+#include <stdio.h>
+#include <string.h>
+#include <stddef.h>
 
 static Font ui_font;
 
@@ -38,7 +41,7 @@ void draw_ui(const WorldState* world) {
     }
 
     // Счёт
-    snprintf(buf, sizeof(buf, "🔵 %d  🔴 %d", 
+    snprintf(buf, sizeof(buf), "%d  %d", 
         world->params.blue_score, world->params.red_score);
     DrawTextEx(ui_font, buf, (Vector2){GetScreenWidth() - 180, 20}, 20, 1, BLACK);
 }
