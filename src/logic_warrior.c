@@ -1,6 +1,6 @@
 // logic_warrior.c
 #include "logic_warrior.h"
-#include "../sound/sound.h"
+#include "sound.h"
 #include <math.h>
 
 #ifndef M_PI
@@ -62,7 +62,7 @@ void logic_warrior_perform_sword_attack(Character* warrior, WorldState* world) {
             // Урон без брони (у воина бронь)
             target->hp -= damage;
             if (target->hp < 0) target->hp = 0;
-            play_sound(SOUND_SWORD_HIT);
+            sound_play(SOUND_SWORD_HIT);
 
             // Начисление очков
             if (target->hp <= 0) {
@@ -88,7 +88,7 @@ void logic_warrior_throw_bomb(Character* warrior, WorldState* world, float throw
     if (throw_power < 0.1f) return;
 
     warrior->bombs--;
-    play_sound(SOUND_BOMB_THROW);
+    sound_play(SOUND_BOMB_THROW);
 
     // Направление: предположим, бросок вправо (для простоты)
     // В реальности — по направлению взгляда или курсора
@@ -144,7 +144,7 @@ void logic_warrior_take_damage(Character* warrior, int damage, bool is_melee) {
     warrior->hp -= damage;
     if (warrior->hp < 0) warrior->hp = 0;
 
-    play_sound(SOUND_PLAYER_HURT);
+    sound_play(SOUND_PLAYER_HURT);
 
     // Анимация получения урона (можно изменить anim_state)
 }
@@ -162,6 +162,6 @@ void logic_warrior_rocketjump_from_bomb(Character* warrior, Vector2 bomb_pos) {
         float force = 400.0f / (dist + 0.1f);
         warrior->vx = (dx / dist) * force;
         warrior->vy = -300.0f; // вверх
-        play_sound(SOUND_BOMB_EXPLODE);
+        sound_play(SOUND_BOMB_EXPLODE);
     }
 }

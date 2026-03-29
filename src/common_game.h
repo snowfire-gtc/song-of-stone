@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "raylib.h"
 
 // ========= ENUMS с префиксами =========
 
@@ -26,7 +27,8 @@ typedef enum {
     BLOCK_BRIDGE,
     BLOCK_LADDER,
     BLOCK_DOOR,
-    BLOCK_GRASS  // декоративный слой на dirt
+    BLOCK_GRASS,  // декоративный слой на dirt
+    BLOCK_BOMB    // бомба как блок (1x1)
 } BlockType;
 
 typedef enum {
@@ -54,6 +56,7 @@ typedef enum {
     ANIM_SHIELD,
     ANIM_SWIM,
     ANIM_CLIMB,
+    ANIM_HURT,
     ANIM_IDLE_FUNNY  // "смешная анимация"
 } AnimationState;
 
@@ -211,6 +214,7 @@ typedef struct {
     Bomb bombs[MAX_PLAYERS * 2];  // максимум 2 бомбы на игрока
     Arrow arrows[MAX_PLAYERS * 10];  // до 10 стрел на игрока
     int bomb_count;
+    int arrow_count;
 } WorldState;
 
 // common_game.h

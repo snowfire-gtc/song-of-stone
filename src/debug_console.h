@@ -2,7 +2,7 @@
 #ifndef DEBUG_CONSOLE_H
 #define DEBUG_CONSOLE_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 // Инициализация консоли
 void debug_console_init(void);

@@ -2,7 +2,7 @@
 #ifndef DRAW_BOMB_H
 #define DRAW_BOMB_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 // Инициализация текстур бомбы
 void draw_bomb_init(void);

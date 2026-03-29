@@ -2,7 +2,7 @@
 #ifndef LOGIC_BOMB_H
 #define LOGIC_BOMB_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 // Создать бомбу (бросок воином)
 Bomb logic_bomb_create(int x, int y, float vx, float vy, int owner_id, Team owner_team, float fuse_time);

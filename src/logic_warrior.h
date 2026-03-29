@@ -2,7 +2,7 @@
 #ifndef LOGIC_WARRIOR_H
 #define LOGIC_WARRIOR_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 // Обновление состояния воина (вызывается каждый кадр)
 void logic_warrior_update(Character* warrior, WorldState* world, int frame_counter);

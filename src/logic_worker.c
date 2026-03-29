@@ -1,6 +1,6 @@
 // logic_worker.c
 #include "logic_worker.h"
-#include "../sound/sound.h"
+#include "sound.h"
 #include <math.h>
 
 // Обновление
@@ -32,24 +32,24 @@ void logic_worker_dig_block(Character* worker, WorldState* world, int block_x, i
         block->type = BLOCK_AIR;
         block->has_grass = false;
         worker->wood += 1; // или можно dirt, но в инвентаре — только wood/stone
-        play_sound(SOUND_DIG_DIRT);
+        sound_play(SOUND_DIG_GRASS);
     }
     else if (type == BLOCK_STONE) {
         // Рабочий разрушает камень мгновенно (по ТЗ)
         block->type = BLOCK_AIR;
         worker->stone += 10;
-        play_sound(SOUND_DIG_STONE);
+        sound_play(SOUND_DIG_STONE);
     }
     else if (type == BLOCK_GOLD) {
         block->type = BLOCK_AIR;
         worker->coins += 2;
-        play_sound(SOUND_DIG_GOLD);
+        sound_play(SOUND_DIG_GOLD);
     }
     else if (type == BLOCK_WOOD) {
         // Рубка дерева
         block->type = BLOCK_AIR;
         worker->wood += 2;
-        play_sound(SOUND_DIG_WOOD);
+        sound_play(SOUND_DIG_WOOD);
         // Сдвиг верхних блоков вниз
         for (int y = block_y + 1; y < WORLD_MAX_HEIGHT; y++) {
             if (world->blocks[y][block_x].type == BLOCK_WOOD) {
@@ -63,7 +63,7 @@ void logic_worker_dig_block(Character* worker, WorldState* world, int block_x, i
     else if (type == BLOCK_GRASS) {
         // Срезание травы
         block->has_grass = false;
-        play_sound(SOUND_DIG_GRASS);
+        sound_play(SOUND_DIG_GRASS);
     }
 }
 
@@ -74,7 +74,7 @@ bool logic_worker_build_spikes(Character* worker, WorldState* world, int x, int 
 
     worker->wood -= WORKER_BUILD_COST_SPIKES;
     world->blocks[y][x].type = BLOCK_SPIKES;
-    play_sound(SOUND_BUILD);
+    sound_play(SOUND_BUILD);
     return true;
 }
 
@@ -87,7 +87,7 @@ bool logic_worker_build_bridge(Character* worker, WorldState* world, int x, int 
     world->blocks[y][x].type = BLOCK_BRIDGE;
     // Привязка к команде — можно хранить в отдельной структуре, но упростим:
     // Предположим, что мост можно убрать только тем же игроком
-    play_sound(SOUND_BUILD);
+    sound_play(SOUND_BUILD);
     return true;
 }
 
@@ -98,7 +98,7 @@ bool logic_worker_build_ladder(Character* worker, WorldState* world, int x, int 
 
     worker->wood -= WORKER_BUILD_COST_LADDER;
     world->blocks[y][x].type = BLOCK_LADDER;
-    play_sound(SOUND_BUILD);
+    sound_play(SOUND_BUILD);
     return true;
 }
 
@@ -109,7 +109,7 @@ bool logic_worker_build_door(Character* worker, WorldState* world, int x, int y)
 
     worker->wood -= WORKER_BUILD_COST_DOOR;
     world->blocks[y][x].type = BLOCK_DOOR;
-    play_sound(SOUND_BUILD_DOOR);
+    sound_play(SOUND_BUILD_DOOR);
     return true;
 }
 
@@ -128,7 +128,7 @@ void logic_worker_plant_tree(Character* worker, WorldState* world, int x, int y)
     if (y + 3 < WORLD_MAX_HEIGHT) {
         world->blocks[y + 3][x].type = BLOCK_LEAFS;
     }
-    play_sound(SOUND_PLANT_TREE);
+    sound_play(SOUND_PLANT_TREE);
 }
 
 // Перенос почвы (упрощённо: мгновенно)
@@ -139,7 +139,7 @@ void logic_worker_move_dirt(Character* worker, WorldState* world, int from_x, in
     world->blocks[to_y][to_x] = world->blocks[from_y][from_x];
     world->blocks[from_y][from_x].type = BLOCK_AIR;
     world->blocks[from_y][from_x].has_grass = false;
-    play_sound(SOUND_DIG_DIRT);
+    sound_play(SOUND_DIG_GRASS);
 }
 
 // Получение урона
@@ -147,5 +147,5 @@ void logic_worker_take_damage(Character* worker, int damage) {
     if (worker->is_invulnerable) return;
     worker->hp -= damage;
     if (worker->hp < 0) worker->hp = 0;
-    play_sound(SOUND_PLAYER_HURT);
+    sound_play(SOUND_PLAYER_HURT);
 }

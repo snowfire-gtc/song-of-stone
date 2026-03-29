@@ -1,6 +1,6 @@
 // logic_arrow.c
 #include "logic_arrow.h"
-#include "../sound/sound.h"
+#include "sound.h"
 #include <math.h>
 
 #define ARROW_GRAVITY 200.0f
@@ -40,9 +40,9 @@ void logic_arrow_update_all(WorldState* world, float delta_time) {
 
                 // Звук удара
                 if (block == BLOCK_WOOD || block == BLOCK_DIRT) {
-                    play_sound(SOUND_ARROW_HIT_SOFT);
+                    sound_play(SOUND_ARROW_HIT_SOFT);
                 } else {
-                    play_sound(SOUND_ARROW_HIT_HARD);
+                    sound_play(SOUND_ARROW_HIT_HARD);
                 }
 
                 // Стрела застревает — можно подобрать (опционально)
@@ -71,10 +71,10 @@ void logic_arrow_update_all(WorldState* world, float delta_time) {
                 } else if (ch->type == CHAR_WORKER) {
                     ch->hp -= damage;
                     if (ch->hp < 0) ch->hp = 0;
-                    play_sound(SOUND_PLAYER_HURT);
+                    sound_play(SOUND_PLAYER_HURT);
                 }
 
-                play_sound(SOUND_ARROW_HIT_CHARACTER);
+                sound_play(SOUND_ARROW_HIT_CHARACTER);
                 break;
             }
         }

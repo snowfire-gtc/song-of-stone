@@ -2,7 +2,7 @@
 #ifndef LOGIC_ARCHER_H
 #define LOGIC_ARCHER_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 // Обновление лучника
 void logic_archer_update(Character* archer, WorldState* world, int frame_counter);

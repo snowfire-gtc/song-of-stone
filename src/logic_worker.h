@@ -2,7 +2,7 @@
 #ifndef LOGIC_WORKER_H
 #define LOGIC_WORKER_H
 
-#include "../../common_game.h"
+#include "common_game.h"
 
 // Обновление рабочего
 void logic_worker_update(Character* worker, WorldState* world, int frame_counter);
