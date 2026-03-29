@@ -3,6 +3,10 @@
 #include "../sound/sound.h"
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
+
 #define WARRIOR_NORMAL_SPEED 120.0f      // пикс/сек
 #define WARRIOR_SHIELD_SPEED 60.0f       // в 2 раза медленнее
 #define WARRIOR_JUMP_POWER 300.0f
