@@ -54,15 +54,18 @@ void logic_warrior_perform_sword_attack(Character* warrior, WorldState* world) {
         float dx = fabsf(warrior->x - target->x);
         float dy = fabsf(warrior->y - target->y);
         if (dx < 16 && dy < 32) {
+            // Определить блок цели для звука
+            BlockType target_block = BLOCK_AIR;
             if (target_block == BLOCK_WOOD) {
                 sound_play(SOUND_SWORD_HIT_WOOD);
             } else if (target_block == BLOCK_STONE) {
                 sound_play(SOUND_SWORD_HIT_STONE);
-            } else
+            } else {
+                sound_play(SOUND_SWORD_HIT_DIRT);
+            }
             // Урон без брони (у воина бронь)
             target->hp -= damage;
             if (target->hp < 0) target->hp = 0;
-            sound_play(SOUND_SWORD_HIT);
 
             // Начисление очков
             if (target->hp <= 0) {
@@ -94,7 +97,7 @@ void logic_warrior_throw_bomb(Character* warrior, WorldState* world, float throw
     // В реальности — по направлению взгляда или курсора
     float angle = 0.0f; // радианы (0 = вправо)
     if (warrior->team == TEAM_BLUE) angle = 0.0f;
-    else angle = M_PI; // влево
+    else angle = PI; // влево
 
     // Сила: от 200 до 600 пикс/сек
     float speed = 200.0f + throw_power * 400.0f;

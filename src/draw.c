@@ -2,10 +2,19 @@
 #include "draw.h"
 #include <stdio.h>
 
-static Font ui_font = {0};
+Font ui_font = {0};  // глобальный, extern в draw_ui.c
 static bool font_loaded = false;
 
-void init_ui_font(void) {
+// Глобальный счётчик кадров для замены GetFrameCounter()
+static int frame_counter = 0;
+int get_frame_counter(void) {
+    return frame_counter;
+}
+void increment_frame_counter(void) {
+    frame_counter++;
+}
+
+void init_ui_font_internal(void) {
     if (!font_loaded) {
         // Используем встроенный шрифт raylib
         ui_font = GetFontDefault();
@@ -16,7 +25,7 @@ void init_ui_font(void) {
 void draw_background(WorldState* world) {
     (void)world;
     // Простой градиентный фон (небо)
-    DrawGradientV(0, 0, 1280, 720, SKYBLUE, LIGHTGRAY);
+    DrawRectangleGradientV(0, 0, 1280, 720, SKYBLUE, LIGHTGRAY);
 }
 
 void draw_blocks(WorldState* world) {
@@ -132,7 +141,7 @@ void draw_dropped_items(WorldState* world) {
                 DrawCircle(px + 8, py + 8, 7, BLACK);
                 break;
             case ITEM_FLAG:
-                DrawFlag((Vector2){px, py}, item->team, false);
+                draw_flag((Vector2){px, py}, item->team, false);
                 break;
             default:
                 break;

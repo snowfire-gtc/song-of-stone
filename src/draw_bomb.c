@@ -1,5 +1,6 @@
 // draw_bomb.c
 #include "draw_bomb.h"
+#include "draw.h"  // для get_frame_counter()
 #include "raylib.h"
 #include <stdlib.h>
 #include <math.h>
@@ -80,13 +81,14 @@ void draw_bomb_single(const Bomb* bomb, int frame_counter) {
 
 // Отрисовка всех бомб
 void draw_bomb_all(const WorldState* world, int frame_counter) {
+    (void)frame_counter;  // используем глобальный счётчик вместо параметра
     for (int i = 0; i < world->bomb_count; i++) {
         const Bomb* bomb = &world->bombs[i];
         if (bomb->exploded && bomb->timer > -0.5f) {
             // Показываем взрыв ещё 0.5 сек
-            draw_bomb_single(bomb, GetFrameCounter()); // см. ниже
+            draw_bomb_single(bomb, get_frame_counter());
         } else if (!bomb->exploded) {
-            draw_bomb_single(bomb, GetFrameCounter());
+            draw_bomb_single(bomb, get_frame_counter());
         }
     }
 }

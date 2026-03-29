@@ -1,4 +1,7 @@
 // src/logic/logic_physics.c
+#include "common_game.h"
+#include <stdbool.h>
+
 bool is_in_water(const WorldState* world, int x, int y) {
     // Персонаж 2 блока высотой
     return (world->blocks[y][x].type == BLOCK_WATER) &&

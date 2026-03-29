@@ -40,9 +40,9 @@ void logic_arrow_update_all(WorldState* world, float delta_time) {
 
                 // Звук удара
                 if (block == BLOCK_WOOD || block == BLOCK_DIRT) {
-                    sound_play(SOUND_ARROW_HIT_SOFT);
+                    sound_play(SOUND_ARROW_HIT_WOOD);
                 } else {
-                    sound_play(SOUND_ARROW_HIT_HARD);
+                    sound_play(SOUND_ARROW_HIT_STONE);
                 }
 
                 // Стрела застревает — можно подобрать (опционально)
