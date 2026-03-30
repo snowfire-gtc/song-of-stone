@@ -100,6 +100,11 @@ WorldState gen_world_default(void) {
     world.params.blue_score = 0;
     world.params.red_score = 0;
     
+    // Физика блоков
+    world.params.enable_falling_blocks = true;
+    world.params.enable_sliding_blocks = true;
+    world.params.block_fall_delay = 0.1f; // 100 мс задержка перед падением
+    
     srand((unsigned int)time(NULL));
     
     // Генерация блоков

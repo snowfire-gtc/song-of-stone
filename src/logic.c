@@ -5,6 +5,9 @@
 void logic_update(WorldState* world, int frame_counter) {
     (void)frame_counter;
     
+    // Обновление физики блоков (обрушение и скольжение)
+    logic_update_block_physics(world);
+    
     // Обновление персонажей
     for (int i = 0; i < world->char_count; i++) {
         Character* ch = &world->characters[i];

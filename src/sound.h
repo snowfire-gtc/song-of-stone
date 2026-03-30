@@ -45,6 +45,7 @@ typedef enum {
     SOUND_FLAG_CAPTURE,
     SOUND_FLAG_RETURN,
     SOUND_FLAG_SCORE,
+    SOUND_FLAG_DROP,
 
     // Другое
     SOUND_DOOR_OPEN,
