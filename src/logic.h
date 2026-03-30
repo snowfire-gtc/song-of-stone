@@ -3,12 +3,18 @@
 #define LOGIC_H
 
 #include "common_game.h"
+#include "net_server.h"
 
 // Основная функция обновления игровой логики
 void logic_update(WorldState* world, int frame_counter);
 
 // Обновление персонажей
 void logic_update_characters(WorldState* world, int frame_counter);
+
+// Серверная логика (только для сервера)
+#ifdef DEDICATED_SERVER
+void logic_update_server(GameServer* server, WorldState* world, double dt);
+#endif
 
 // Проверка столкновений
 bool logic_check_collision(int x, int y, BlockType block);

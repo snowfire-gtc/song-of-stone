@@ -4,7 +4,11 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
+// raylib только для клиента, не для сервера
+#ifndef DEDICATED_SERVER
 #include "raylib.h"
+#endif
 
 // ========= ENUMS с префиксами =========
 
@@ -68,6 +72,21 @@ typedef enum {
     BOMB_STATE_PLANTED,
     BOMB_STATE_EXPLODING
 } BombState;
+
+typedef enum {
+    WEATHER_CLEAR,
+    WEATHER_RAIN,
+    WEATHER_SNOW
+} Weather;
+
+// Состояния игры
+typedef enum {
+    GAME_STATE_MENU,
+    GAME_STATE_PLAYING,
+    GAME_STATE_PAUSED,
+    GAME_STATE_CONNECTING,
+    GAME_STATE_EXIT
+} GameState;
 
 // Новая структура для стрелы в полёте
 typedef struct {
@@ -206,6 +225,15 @@ typedef struct {
     bool enable_sliding_blocks;   // скольжение по наклонным
     float block_fall_delay;       // задержка перед падением (сек)
 } WorldParams;
+
+// Простая структура Vector2 для сервера (если raylib не подключён)
+#ifndef DEDICATED_SERVER
+// Используем Vector2 из raylib
+#else
+typedef struct {
+    float x, y;
+} Vector2;
+#endif
 
 typedef struct {
     Block blocks[WORLD_MAX_HEIGHT][WORLD_MAX_WIDTH];

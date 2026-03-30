@@ -1,116 +1,334 @@
-// client_main.c (упрощённый main)
+// client.c - Клиентская часть сети
+#include "client.h"
+#include "net_protocol.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <arpa/inet.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/time.h>
 
-#include "../shared/common_game.h"
-#include "../shared/net_protocol.h"
-#include "raylib.h"
+static double get_time_seconds(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + tv.tv_usec / 1000000.0;
+}
 
-static int client_sock;
-static struct sockaddr_in server_addr;
-static WorldState local_world;
-static uint32_t last_snapshot_tick = 0;
+static int set_nonblocking(int sockfd) {
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags == -1) return 0;
+    return fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) != -1;
+}
+
+// Инициализация клиента
+int client_init(GameClient* client, const char* server_ip, int port) {
+    memset(client, 0, sizeof(GameClient));
+    
+    // Создание сокета
+    client->socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (client->socket_fd < 0) {
+        perror("Не удалось создать сокет");
+        return 0;
+    }
+    
+    // Установка в неблокирующий режим
+    if (!set_nonblocking(client->socket_fd)) {
+        perror("Не удалось установить неблокирующий режим");
+        close(client->socket_fd);
+        return 0;
+    }
+    
+    // Настройка адреса сервера
+    memset(&client->server_addr, 0, sizeof(client->server_addr));
+    client->server_addr.sin_family = AF_INET;
+    client->server_addr.sin_port = htons(port);
+    
+    if (inet_pton(AF_INET, server_ip, &client->server_addr.sin_addr) <= 0) {
+        perror("Неверный IP адрес сервера");
+        close(client->socket_fd);
+        return 0;
+    }
+    
+    client->addr_len = sizeof(client->server_addr);
+    client->connected = 0;
+    client->player_id = -1;
+    client->interpolation_delay = INTERPOLATION_DELAY;
+    
+    // Отправка приветствия
+    PacketHeader header;
+    init_packet_header(&header, PKT_HELLO, 0, 0);
+    
+    char hello_data[64] = {0};
+    snprintf(hello_data, sizeof(hello_data), "Player");
+    
+    uint8_t buffer[512];
+    size_t size = serialize_packet(&header, (uint8_t*)hello_data, strlen(hello_data), 
+                                    buffer, sizeof(buffer));
+    
+    if (size > 0) {
+        sendto(client->socket_fd, buffer, size, 0,
+               (struct sockaddr*)&client->server_addr, client->addr_len);
+        client->packets_sent++;
+    }
+    
+    printf("Подключение к серверу %s:%d...\n", server_ip, port);
+    return 1;
+}
+
+void client_shutdown(GameClient* client) {
+    if (!client) return;
+    
+    // Отправить уведомление об отключении
+    if (client->connected && client->socket_fd >= 0) {
+        PacketHeader header;
+        init_packet_header(&header, PKT_DISCONNECT, 0, 0);
+        
+        uint8_t buffer[256];
+        size_t size = serialize_packet(&header, NULL, 0, buffer, sizeof(buffer));
+        
+        if (size > 0) {
+            sendto(client->socket_fd, buffer, size, 0,
+                   (struct sockaddr*)&client->server_addr, client->addr_len);
+        }
+    }
+    
+    if (client->socket_fd >= 0) {
+        close(client->socket_fd);
+        client->socket_fd = -1;
+    }
+    
+    client->connected = 0;
+    printf("Клиент отключён\n");
+}
+
+// Проверка подключения
+int client_is_connected(GameClient* client) {
+    return client && client->connected;
+}
+
+// Получение задержки
+float client_get_latency(GameClient* client) {
+    if (!client) return 0.0f;
+    return client->avg_latency;
+}
+
+// Статус подключения
+const char* client_get_connection_status(GameClient* client) {
+    if (!client) return "Ошибка";
+    if (!client->connected) return "Подключение...";
+    if (client->avg_latency < 50) return "Отлично";
+    if (client->avg_latency < 100) return "Хорошо";
+    if (client->avg_latency < 200) return "Посредственно";
+    return "Плохо";
+}
 
 // Отправка ввода
-void client_send_input(PlayerInput input) {
-    NetworkPacket pkt = {0};
-    pkt.type = PKT_INPUT;
-    pkt.player_id = local_world.local_player_id;
-    pkt.input = input;
-    sendto(client_sock, &pkt, sizeof(pkt), 0, (struct sockaddr*)&server_addr, sizeof(server_addr));
-}
-
-// Обработка снапшота
-void client_apply_snapshot(WorldSnapshot* snap) {
-    if (snap->tick <= last_snapshot_tick) return;
-    last_snapshot_tick = snap->tick;
-
-    for (int i = 0; i < snap->char_count; i++) {
-        SnapshotChar* sc = &snap->chars[i];
-        Character* ch = &local_world.characters[i];
-        // Интерполяция или немедленное обновление
-        ch->x = sc->x;
-        ch->y = sc->y;
-        ch->vx = sc->vx * 4;
-        ch->vy = sc->vy * 4;
-        ch->hp = sc->hp;
-        ch->anim_state = sc->anim_state;
-        ch->is_shield_active = sc->is_shield_active;
-        ch->is_aiming = sc->is_aiming;
-        ch->is_holding_flag = sc->is_holding_flag;
-        ch->is_climbing = sc->is_climbing;
-        ch->team = sc->team;
-        ch->type = sc->type;
+void client_send_input(GameClient* client, PlayerInput* input) {
+    if (!client || !client->connected) return;
+    
+    PacketHeader header;
+    init_packet_header(&header, PKT_INPUT, 0, client->packets_sent);
+    
+    uint8_t payload[64];
+    size_t payload_size = serialize_input(input, payload, sizeof(payload));
+    
+    uint8_t buffer[512];
+    size_t size = serialize_packet(&header, payload, payload_size, buffer, sizeof(buffer));
+    
+    if (size > 0) {
+        sendto(client->socket_fd, buffer, size, 0,
+               (struct sockaddr*)&client->server_addr, client->addr_len);
+        client->packets_sent++;
+        client->last_send_time = get_time_seconds();
     }
 }
 
-// Подключение
-void client_connect(const char* ip) {
-    client_sock = socket(AF_INET, SOCK_DGRAM, 0);
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(NET_PORT);
-    inet_pton(AF_INET, ip, &server_addr.sin_addr);
-
-    // Отправить HELLO
-    NetworkPacket hello = {0};
-    hello.type = PKT_HELLO;
-    strcpy(hello.hello_name, "Player");
-
-    sendto(client_sock, &hello, sizeof(hello), 0, (struct sockaddr*)&server_addr, sizeof(server_addr));
-
-    // Получить ответ с player_id
-    NetworkPacket ack;
-    socklen_t addr_len = sizeof(server_addr);
-    recvfrom(client_sock, &ack, sizeof(ack), 0, (struct sockaddr*)&server_addr, &addr_len);
-    local_world.local_player_id = ack.player_id;
-    printf("Connected as player %d\n", ack.player_id);
+// Отправка действия
+void client_send_action(GameClient* client, ActionType action, int target_x, int target_y) {
+    if (!client || !client->connected) return;
+    
+    PacketHeader header;
+    init_packet_header(&header, PKT_ACTION, 0, client->packets_sent);
+    
+    PacketAction pkt_action = {0};
+    pkt_action.action_type = action;
+    pkt_action.x = target_x;
+    pkt_action.y = target_y;
+    
+    uint8_t payload[64];
+    size_t payload_size = serialize_action(&pkt_action, payload, sizeof(payload));
+    
+    uint8_t buffer[512];
+    size_t size = serialize_packet(&header, payload, payload_size, buffer, sizeof(buffer));
+    
+    if (size > 0) {
+        sendto(client->socket_fd, buffer, size, 0,
+               (struct sockaddr*)&client->server_addr, client->addr_len);
+        client->packets_sent++;
+    }
 }
 
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        printf("Usage: %s <server_ip>\n", argv[0]);
-        return 1;
+// Отправка сообщения в чат
+void client_send_chat(GameClient* client, const char* message) {
+    if (!client || !message) return;
+    
+    PacketHeader header;
+    init_packet_header(&header, PKT_CHAT, 0, client->packets_sent);
+    
+    uint8_t buffer[512];
+    size_t size = serialize_packet(&header, (const uint8_t*)message, strlen(message), 
+                                    buffer, sizeof(buffer));
+    
+    if (size > 0) {
+        sendto(client->socket_fd, buffer, size, 0,
+               (struct sockaddr*)&client->server_addr, client->addr_len);
+        client->packets_sent++;
     }
+}
 
-    client_connect(argv[1]);
-    InitWindow(1280, 720, "Medieval CTF - Client");
-    SetTargetFPS(60);
-
-    while (!WindowShouldClose()) {
-        // Сбор ввода
-        PlayerInput input = {0};
-        input.move_left = IsKeyDown(KEY_A);
-        input.move_right = IsKeyDown(KEY_D);
-        input.jump = IsKeyDown(KEY_SPACE);
-        input.attack = IsKeyDown(KEY_F);
-        input.aim = IsKeyDown(KEY_R);
-        input.dig = IsKeyDown(KEY_E);
-        input.shield = IsKeyDown(KEY_LEFT_CONTROL);
-
-        client_send_input(input);
-
-        // Получение снапшотов
-        NetworkPacket pkt;
-        socklen_t addr_len = sizeof(server_addr);
-        int len = recvfrom(client_sock, &pkt, sizeof(pkt), MSG_DONTWAIT,
-                           (struct sockaddr*)&server_addr, &addr_len);
-        if (len > 0 && pkt.type == PKT_SNAPSHOT) {
-            client_apply_snapshot(&pkt.snapshot);
+// Получение пакетов
+int client_receive_packets(GameClient* client) {
+    if (!client || client->socket_fd < 0) return 0;
+    
+    int packets_processed = 0;
+    
+    while (1) {
+        ssize_t recv_size = recvfrom(client->socket_fd, client->recv_buffer, 
+                                      sizeof(client->recv_buffer), 0,
+                                      (struct sockaddr*)&client->server_addr, 
+                                      &client->addr_len);
+        
+        if (recv_size < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                break; // Нет больше данных
+            }
+            perror("Ошибка получения пакета");
+            break;
         }
-
-        // Отрисовка
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-        draw_all(&local_world); // твои функции отрисовки
-        EndDrawing();
+        
+        client->packets_received++;
+        client->last_recv_time = get_time_seconds();
+        
+        // Разбор пакета
+        PacketHeader header;
+        uint8_t payload[4096];
+        size_t payload_size;
+        
+        if (!deserialize_packet(client->recv_buffer, recv_size, &header, 
+                                payload, sizeof(payload), &payload_size)) {
+            client->sequence_errors++;
+            continue;
+        }
+        
+        // Обработка по типу пакета
+        switch (header.type) {
+            case PKT_WELCOME: {
+                // Сервер подтвердил подключение
+                client->connected = 1;
+                client->player_id = header.player_id;
+                
+                if (payload_size > 0) {
+                    strncpy(client->server_name, (char*)payload, sizeof(client->server_name) - 1);
+                }
+                
+                printf("Подключён как игрок %d к серверу \"%s\"\n", 
+                       client->player_id, client->server_name);
+                break;
+            }
+            
+            case PKT_SNAPSHOT: {
+                // Снапшот состояния мира
+                PacketSnapshot snapshot = {0};
+                if (deserialize_snapshot(payload, payload_size, &snapshot)) {
+                    client_apply_snapshot(client, &snapshot);
+                }
+                break;
+            }
+            
+            case PKT_CHAT: {
+                // Сообщение чата
+                if (payload_size > 0 && payload_size < 256) {
+                    printf("[CHAT] %.*s\n", (int)payload_size, payload);
+                }
+                break;
+            }
+            
+            case PKT_DISCONNECT: {
+                // Сервер отключает клиента
+                printf("Сервер отключил клиента: %.*s\n", (int)payload_size, payload);
+                client->connected = 0;
+                break;
+            }
+            
+            default:
+                printf("Неизвестный тип пакета: %d\n", header.type);
+                break;
+        }
+        
+        packets_processed++;
     }
+    
+    return packets_processed;
+}
 
-    CloseWindow();
-    close(client_sock);
-    return 0;
+// Применение снапшота
+void client_apply_snapshot(GameClient* client, PacketSnapshot* snapshot) {
+    if (!client || !snapshot) return;
+    
+    // Проверка порядка снапшотов
+    if (snapshot->timestamp <= client->last_snapshot_tick) {
+        return; // Устаревший снапшот
+    }
+    
+    client->pending_snapshot_tick = snapshot->timestamp;
+    
+    // Обновление персонажей из снапшота
+    for (int i = 0; i < snapshot->character_count && i < MAX_CHARACTERS; i++) {
+        EncodedCharacter* ec = &snapshot->characters[i];
+        Character* ch = &client->local_world.characters[i];
+        
+        // Декодирование дельты
+        decode_character_delta(ec, ch);
+        
+        ch->active = 1;
+    }
+    
+    // Обновление времени последнего снапшота
+    client->last_snapshot_tick = snapshot->timestamp;
+}
+
+// Интерполяция персонажей
+void client_interpolate_characters(GameClient* client, double alpha) {
+    if (!client || !client->connected) return;
+    
+    // Плавная интерполяция между последними известными позициями
+    // В полной реализации нужно хранить предыдущее и текущее состояние
+    // Для простоты пока просто копируем позиции
+}
+
+// Основное обновление клиента
+void client_update(GameClient* client, double dt) {
+    if (!client) return;
+    
+    // Получение пакетов от сервера
+    client_receive_packets(client);
+    
+    // Таймаут подключения
+    if (!client->connected) {
+        client->reconnect_timer += dt;
+        if (client->reconnect_timer > 5.0) {
+            printf("Таймаут подключения к серверу\n");
+            client->reconnect_timer = 0;
+        }
+    }
+    
+    // Расчёт средней задержки (упрощённо)
+    if (client->last_send_time > 0 && client->last_recv_time > 0) {
+        float latency = (client->last_recv_time - client->last_send_time) * 1000.0f;
+        client->avg_latency = client->avg_latency * 0.9f + latency * 0.1f;
+    }
 }

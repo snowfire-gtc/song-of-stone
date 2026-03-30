@@ -1,0 +1,431 @@
+#include "menu.h"
+#include "main.h"  // Для доступа к g_game_state
+#include "settings.h"
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+
+// Цвета UI
+#define MENU_BG_COLOR (Color){0, 0, 0, 200}
+#define MENU_BUTTON_COLOR (Color){50, 50, 50, 200}
+#define MENU_BUTTON_HOVER (Color){70, 70, 70, 220}
+#define MENU_BUTTON_SELECTED (Color){100, 100, 150, 220}
+#define MENU_TEXT_COLOR RAYWHITE
+#define MENU_TITLE_COLOR GOLD
+
+void menu_init(Menu* menu) {
+    menu->state = MENU_STATE_MAIN;
+    menu->previous_state = MENU_STATE_MAIN;
+    menu->selected_option = 0;
+    menu->scroll_offset = 0;
+    menu->visible = true; // Показываем меню при старте
+    menu->alpha = 1.0f;
+    menu->scale = 1.0f;
+    
+    // Значения по умолчанию
+    strcpy(menu->server_ip, "127.0.0.1");
+    menu->server_port = 5555;
+    strcpy(menu->player_name, "Player");
+}
+
+void menu_toggle(Menu* menu) {
+    menu->visible = !menu->visible;
+    if (menu->visible) {
+        menu->alpha = 0.0f;
+        menu->scale = 0.9f;
+    }
+}
+
+bool menu_draw_button(const char* text, Rectangle bounds, bool disabled) {
+    Color color = disabled ? GRAY : MENU_BUTTON_COLOR;
+    
+    Vector2 mouse = GetMousePosition();
+    if (CheckCollisionPointRec(mouse, bounds) && !disabled) {
+        color = IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ? MENU_BUTTON_SELECTED : MENU_BUTTON_HOVER;
+    }
+    
+    DrawRectangleRec(bounds, color);
+    DrawRectangleLinesEx(bounds, 2, disabled ? DARKGRAY : WHITE);
+    
+    int textWidth = MeasureText(text, 20);
+    DrawText(text, 
+             bounds.x + (bounds.width - textWidth) / 2,
+             bounds.y + (bounds.height - 20) / 2,
+             20, disabled ? LIGHTGRAY : MENU_TEXT_COLOR);
+    
+    return CheckCollisionPointRec(mouse, bounds) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !disabled;
+}
+
+void menu_draw_header(const char* title, Vector2 position) {
+    DrawText(title, position.x, position.y, 40, MENU_TITLE_COLOR);
+    DrawLine(position.x, position.y + 45, position.x + 400, position.y + 45, GOLD);
+}
+
+float menu_draw_slider(const char* label, Rectangle bounds, float value, float min, float max) {
+    DrawText(label, bounds.x, bounds.y - 25, 16, MENU_TEXT_COLOR);
+    
+    // Фон слайдера
+    DrawRectangleRec(bounds, DARKGRAY);
+    DrawRectangleLinesEx(bounds, 2, WHITE);
+    
+    // Заполнение
+    float fill_width = ((value - min) / (max - min)) * bounds.width;
+    DrawRectangle(bounds.x, bounds.y, fill_width, bounds.height, BLUE);
+    
+    // Ползунок
+    float handle_x = bounds.x + fill_width - 5;
+    DrawRectangle(handle_x, bounds.y - 5, 10, bounds.height + 10, WHITE);
+    
+    // Значение
+    char value_str[32];
+    snprintf(value_str, sizeof(value_str), "%.2f", value);
+    DrawText(value_str, bounds.x + bounds.width + 10, bounds.y, 16, MENU_TEXT_COLOR);
+    
+    // Проверка клика
+    Vector2 mouse = GetMousePosition();
+    if (CheckCollisionPointRec(mouse, bounds) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        float new_value = min + ((mouse.x - bounds.x) / bounds.width) * (max - min);
+        return fmaxf(min, fminf(max, new_value));
+    }
+    
+    return value;
+}
+
+void menu_draw_input_box(const char* label, Rectangle bounds, char* buffer, int max_len, bool active) {
+    DrawText(label, bounds.x, bounds.y - 25, 16, MENU_TEXT_COLOR);
+    
+    Color bg_color = active ? (Color){60, 60, 80, 255} : (Color){40, 40, 60, 255};
+    DrawRectangleRec(bounds, bg_color);
+    DrawRectangleLinesEx(bounds, 2, active ? YELLOW : WHITE);
+    
+    DrawText(buffer, bounds.x + 5, bounds.y + 5, 20, MENU_TEXT_COLOR);
+    
+    // Курсор
+    if (active && ((GetFrameCount() / 30) % 2 == 0)) {
+        int text_width = MeasureText(buffer, 20);
+        DrawLine(bounds.x + 5 + text_width, bounds.y + 5,
+                 bounds.x + 5 + text_width, bounds.y + 25, WHITE);
+    }
+}
+
+void menu_update(Menu* menu, WorldState* world, double dt) {
+    if (!menu->visible) return;
+    
+    // Анимация появления
+    if (menu->alpha < 1.0f) {
+        menu->alpha += dt * 5.0f;
+        if (menu->alpha > 1.0f) menu->alpha = 1.0f;
+    }
+    if (menu->scale < 1.0f) {
+        menu->scale += dt * 3.0f;
+        if (menu->scale > 1.0f) menu->scale = 1.0f;
+    }
+    
+    // Обработка клавиатуры
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        if (menu->state != MENU_STATE_MAIN) {
+            menu->state = menu->previous_state;
+        } else {
+            menu_toggle(menu);
+        }
+    }
+}
+
+void menu_render_main(Menu* menu, WorldState* world) {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    
+    float btn_width = 300;
+    float btn_height = 50;
+    float start_x = (screen_w - btn_width) / 2;
+    float start_y = screen_h / 2 - 100;
+    
+    menu_draw_header("SONG OF STONE", (Vector2){start_x + 50, start_y - 80});
+    
+    if (menu_draw_button("Играть одиночно", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
+        // Запуск одиночной игры
+        g_game_state = GAME_STATE_PLAYING;
+        menu->visible = false;
+    }
+    
+    if (menu_draw_button("Сетевая игра", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
+        menu->previous_state = MENU_STATE_MAIN;
+        menu->state = MENU_STATE_NETWORK;
+    }
+    
+    if (menu_draw_button("Настройки", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
+        menu->previous_state = MENU_STATE_MAIN;
+        menu->state = MENU_STATE_SETTINGS;
+    }
+    
+    if (menu_draw_button("Выход", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
+        g_game_state = GAME_STATE_EXIT;
+    }
+}
+
+void menu_render_network(Menu* menu, WorldState* world) {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    
+    float form_width = 400;
+    float start_x = (screen_w - form_width) / 2;
+    float start_y = screen_h / 2 - 150;
+    
+    menu_draw_header("Сетевая игра", (Vector2){start_x + 50, start_y - 80});
+    
+    // Поле IP сервера
+    menu_draw_input_box("IP сервера:", 
+                        (Rectangle){start_x, start_y, form_width, 40},
+                        menu->server_ip, sizeof(menu->server_ip), false);
+    
+    // Поле порта
+    char port_str[16];
+    snprintf(port_str, sizeof(port_str), "%d", menu->server_port);
+    menu_draw_input_box("Порт:", 
+                        (Rectangle){start_x, start_y + 60, form_width, 40},
+                        port_str, sizeof(port_str), false);
+    menu->server_port = atoi(port_str);
+    
+    // Поле имени игрока
+    menu_draw_input_box("Имя игрока:", 
+                        (Rectangle){start_x, start_y + 120, form_width, 40},
+                        menu->player_name, sizeof(menu->player_name), false);
+    
+    // Кнопки
+    if (menu_draw_button("Подключиться", (Rectangle){start_x, start_y + 180, form_width/2 - 10, 50}, false)) {
+        // Попытка подключения
+        printf("Connecting to %s:%d as %s...\n", menu->server_ip, menu->server_port, menu->player_name);
+        // Здесь будет вызов net_client_connect()
+        g_game_state = GAME_STATE_CONNECTING;
+        menu->visible = false;
+    }
+    
+    if (menu_draw_button("Назад", (Rectangle){start_x + form_width/2 + 10, start_y + 180, form_width/2 - 10, 50}, false)) {
+        menu->state = menu->previous_state;
+    }
+    
+    // Информация
+    DrawText("Введите IP и порт сервера для подключения", start_x, start_y + 250, 16, LIGHTGRAY);
+}
+
+void menu_render_settings(Menu* menu, WorldState* world) {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    
+    float btn_width = 300;
+    float btn_height = 50;
+    float start_x = (screen_w - btn_width) / 2;
+    float start_y = screen_h / 2 - 150;
+    
+    menu_draw_header("Настройки", (Vector2){start_x + 50, start_y - 80});
+    
+    if (menu_draw_button("Видео", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
+        menu->previous_state = MENU_STATE_SETTINGS;
+        menu->state = MENU_STATE_SETTINGS_VIDEO;
+    }
+    
+    if (menu_draw_button("Звук", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
+        menu->previous_state = MENU_STATE_SETTINGS;
+        menu->state = MENU_STATE_SETTINGS_AUDIO;
+    }
+    
+    if (menu_draw_button("Управление", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
+        menu->previous_state = MENU_STATE_SETTINGS;
+        menu->state = MENU_STATE_SETTINGS_CONTROLS;
+    }
+    
+    if (menu_draw_button("Внешность", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
+        menu->previous_state = MENU_STATE_SETTINGS;
+        menu->state = MENU_STATE_SETTINGS_APPEARANCE;
+    }
+    
+    if (menu_draw_button("Назад", (Rectangle){start_x, start_y + 240, btn_width, btn_height}, false)) {
+        menu->state = menu->previous_state;
+    }
+}
+
+void menu_render_settings_video(Menu* menu, WorldState* world) {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    
+    float slider_width = 300;
+    float start_x = (screen_w - slider_width) / 2;
+    float start_y = screen_h / 2 - 150;
+    
+    menu_draw_header("Настройки видео", (Vector2){start_x + 50, start_y - 80});
+    
+    // Пример настроек (нужно интегрировать с Settings struct)
+    static float render_scale = 1.0f;
+    render_scale = menu_draw_slider("Масштаб рендера", 
+                                    (Rectangle){start_x, start_y, slider_width, 30},
+                                    render_scale, 0.5f, 2.0f);
+    
+    // static int fps_limit = 60; // unused
+    // Упрощённый слайдер для FPS
+    DrawText("Лимит FPS: 60", start_x, start_y + 50, 20, MENU_TEXT_COLOR);
+    
+    if (menu_draw_button("Назад", (Rectangle){start_x, start_y + 200, 150, 50}, false)) {
+        menu->state = menu->previous_state;
+    }
+}
+
+void menu_render_settings_audio(Menu* menu, WorldState* world) {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    
+    float slider_width = 300;
+    float start_x = (screen_w - slider_width) / 2;
+    float start_y = screen_h / 2 - 150;
+    
+    menu_draw_header("Настройки звука", (Vector2){start_x + 50, start_y - 80});
+    
+    static float master_vol = 1.0f;
+    static float sfx_vol = 1.0f;
+    static float music_vol = 0.8f;
+    
+    master_vol = menu_draw_slider("Общая громкость", 
+                                  (Rectangle){start_x, start_y, slider_width, 30},
+                                  master_vol, 0.0f, 1.0f);
+    
+    sfx_vol = menu_draw_slider("Звуковые эффекты", 
+                               (Rectangle){start_x, start_y + 60, slider_width, 30},
+                               sfx_vol, 0.0f, 1.0f);
+    
+    music_vol = menu_draw_slider("Музыка", 
+                                 (Rectangle){start_x, start_y + 120, slider_width, 30},
+                                 music_vol, 0.0f, 1.0f);
+    
+    // Применение громкости
+    // SetMasterVolume(master_vol); и т.д.
+    
+    if (menu_draw_button("Назад", (Rectangle){start_x, start_y + 200, 150, 50}, false)) {
+        menu->state = menu->previous_state;
+    }
+}
+
+void menu_render_settings_controls(Menu* menu, WorldState* world) {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    
+    menu_draw_header("Управление", (Vector2){100, 100});
+    
+    DrawText("WASD - Движение", 100, 150, 20, MENU_TEXT_COLOR);
+    DrawText("Пробел - Прыжок", 100, 180, 20, MENU_TEXT_COLOR);
+    DrawText("ЛКМ - Атака/Копать", 100, 210, 20, MENU_TEXT_COLOR);
+    DrawText("ПКМ - Строить", 100, 240, 20, MENU_TEXT_COLOR);
+    DrawText("E - Использовать предмет", 100, 270, 20, MENU_TEXT_COLOR);
+    DrawText("Tab - Инвентарь", 100, 300, 20, MENU_TEXT_COLOR);
+    DrawText("Esc - Меню/Пауза", 100, 330, 20, MENU_TEXT_COLOR);
+    
+    if (menu_draw_button("Назад", (Rectangle){100, 400, 150, 50}, false)) {
+        menu->state = menu->previous_state;
+    }
+}
+
+void menu_render_settings_appearance(Menu* menu, WorldState* world) {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    
+    menu_draw_header("Внешность персонажа", (Vector2){100, 100});
+    
+    // Превью персонажа
+    DrawRectangle(400, 150, 100, 150, BROWN); // Тело
+    DrawCircle(450, 120, 30, PINK); // Голова
+    
+    DrawText("Цвет кожи: Розовый", 100, 350, 20, MENU_TEXT_COLOR);
+    DrawText("Цвет волос: Коричневый", 100, 380, 20, MENU_TEXT_COLOR);
+    DrawText("Одежда: Синяя рубашка", 100, 410, 20, MENU_TEXT_COLOR);
+    
+    if (menu_draw_button("Случайный", (Rectangle){100, 450, 150, 50}, false)) {
+        // Генерация случайной внешности
+    }
+    
+    if (menu_draw_button("Назад", (Rectangle){100, 520, 150, 50}, false)) {
+        menu->state = menu->previous_state;
+    }
+}
+
+void menu_render_pause(Menu* menu, WorldState* world) {
+    int screen_w = GetScreenWidth();
+    int screen_h = GetScreenHeight();
+    
+    float btn_width = 300;
+    float btn_height = 50;
+    float start_x = (screen_w - btn_width) / 2;
+    float start_y = screen_h / 2 - 100;
+    
+    menu_draw_header("ПАУЗА", (Vector2){start_x + 80, start_y - 80});
+    
+    if (menu_draw_button("Продолжить", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
+        menu_toggle(menu);
+        g_game_state = GAME_STATE_PLAYING;
+    }
+    
+    if (menu_draw_button("Настройки", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
+        menu->previous_state = MENU_STATE_PAUSE;
+        menu->state = MENU_STATE_SETTINGS;
+    }
+    
+    if (menu_draw_button("В главное меню", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
+        g_game_state = GAME_STATE_MENU;
+        menu->visible = true;
+        menu->state = MENU_STATE_MAIN;
+    }
+    
+    if (menu_draw_button("Отключиться", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
+        // Отключение от сервера
+        menu_toggle(menu);
+        g_game_state = GAME_STATE_MENU;
+    }
+}
+
+void menu_render(Menu* menu, WorldState* world) {
+    if (!menu->visible) return;
+    
+    // Полупрозрачный фон
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), 
+                  (Color){0, 0, 0, (int)(150 * menu->alpha)});
+    
+    BeginScissorMode(0, 0, GetScreenWidth(), GetScreenHeight());
+    
+    // Сохраняем текущую трансформацию и применяем анимацию
+    // (в реальном коде нужно масштабирование через матрицы)
+    
+    switch (menu->state) {
+        case MENU_STATE_MAIN:
+            menu_render_main(menu, world);
+            break;
+        case MENU_STATE_NETWORK:
+            menu_render_network(menu, world);
+            break;
+        case MENU_STATE_SETTINGS:
+            menu_render_settings(menu, world);
+            break;
+        case MENU_STATE_SETTINGS_VIDEO:
+            menu_render_settings_video(menu, world);
+            break;
+        case MENU_STATE_SETTINGS_AUDIO:
+            menu_render_settings_audio(menu, world);
+            break;
+        case MENU_STATE_SETTINGS_CONTROLS:
+            menu_render_settings_controls(menu, world);
+            break;
+        case MENU_STATE_SETTINGS_APPEARANCE:
+            menu_render_settings_appearance(menu, world);
+            break;
+        case MENU_STATE_PAUSE:
+            menu_render_pause(menu, world);
+            break;
+        default:
+            break;
+    }
+    
+    EndScissorMode();
+}
+
+void menu_handle_input(Menu* menu, WorldState* world __attribute__((unused))) {
+    if (!menu->visible) return;
+    
+    // Обработка ввода для полей ввода (упрощённо)
+    // В полной версии нужно отслеживать активное поле и обрабатывать ввод текста
+}
