@@ -1,27 +1,15 @@
 ```
-# Audio files
-*.ogg
-
 # Build artifacts
+build/
 *.o
 *.obj
-*.a
-*.so
-*.dll
-*.exe
 *.out
 
 # Dependencies
 node_modules/
-venv/
 .venv/
+venv/
 __pycache__/
-.mypy_cache/
-.pytest_cache/
-dist/
-build/
-target/
-.gradle/
 
 # Logs and temp files
 *.log
@@ -37,7 +25,7 @@ target/
 .vscode/
 .idea/
 
-# System files
+# OS files
 .DS_Store
 Thumbs.db
 
@@ -65,8 +53,4 @@ htmlcov/
 *.Z
 *.lz
 *.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
 ```

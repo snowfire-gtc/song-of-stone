@@ -1,6 +1,7 @@
 // src/draw.c
 #include "draw.h"
 #include <stdio.h>
+#include <math.h>
 
 Font ui_font = {0};  // глобальный, extern в draw_ui.c
 static bool font_loaded = false;
@@ -156,16 +157,47 @@ void draw_flag(Vector2 pos, Team team, bool carried) {
     // Флагшток
     DrawLine(px + 8, py, px + 8, py + 32, DARKGRAY);
     
-    // Полотнище флага
+    // Полотнище флага с анимацией
     Color flag_color = (team == TEAM_BLUE) ? BLUE : RED;
     if (carried) {
         py -= 10; // Поднят выше при переноске
     }
     
+    // Анимация развевающегося флага
+    int frame = get_frame_counter();
+    float time = frame * 0.05f;
+    
+    // Многослойная волна для более реалистичного развевания
+    float wave1 = sinf(time) * 3.0f;
+    float wave2 = sinf(time * 1.5f + 1.0f) * 1.5f;
+    float wave3 = cosf(time * 2.0f) * 0.8f;
+    float total_wave = wave1 + wave2 + wave3;
+    
+    // Рисуем флаг с волной (основная часть)
     DrawTriangle(
         (Vector2){px + 8, py + 4},
-        (Vector2){px + 24, py + 12},
+        (Vector2){px + 24 + total_wave, py + 12},
         (Vector2){px + 8, py + 20},
         flag_color
+    );
+    
+    // Добавляем складки для эффекта ткани
+    Color shadow = (Color){flag_color.r - 40, flag_color.g - 40, flag_color.b - 40, 255};
+    float fold_offset = total_wave * 0.6f;
+    DrawTriangle(
+        (Vector2){px + 8, py + 4},
+        (Vector2){px + 16 + fold_offset, py + 12},
+        (Vector2){px + 8, py + 20},
+        shadow
+    );
+    
+    // Вторая складка для глубины
+    Color highlight = (Color){flag_color.r + 20, flag_color.g + 20, flag_color.b + 20, 255};
+    float fold_offset2 = total_wave * 0.3f;
+    DrawTriangle(
+        (Vector2){px + 8, py + 4},
+        (Vector2){px + 20 + fold_offset2, py + 12},
+        (Vector2){px + 8, py + 20},
+        highlight
     );
 }

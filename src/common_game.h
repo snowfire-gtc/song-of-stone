@@ -28,7 +28,9 @@ typedef enum {
     BLOCK_LADDER,
     BLOCK_DOOR,
     BLOCK_GRASS,  // декоративный слой на dirt
-    BLOCK_BOMB    // бомба как блок (1x1)
+    BLOCK_BOMB,   // бомба как блок (1x1)
+    BLOCK_SAND,   // сыпучий блок для физики обрушения
+    BLOCK_GRAVEL  // ещё один сыпучий блок
 } BlockType;
 
 typedef enum {
@@ -107,6 +109,7 @@ typedef struct {
     BlockType type;
     bool has_grass;       // только для BLOCK_DIRT
     uint8_t grass_variant; // 0–3
+    float fall_timer;     // таймер для обрушения (сек)
 } Block;
 
 typedef struct {
@@ -166,6 +169,13 @@ typedef struct {
     bool is_picked_up;
 } DroppedItem;
 
+// Состояние анимации флага
+typedef struct {
+    float wave_offset;      // смещение волны для анимации
+    float wind_strength;    // сила ветра (0.0-1.0)
+    float capture_progress; // прогресс захвата (0.0-1.0)
+} FlagAnimation;
+
 typedef struct {
     int width_blocks;
     int height_blocks;
@@ -189,6 +199,11 @@ typedef struct {
     // Счёт
     int blue_score;
     int red_score;
+    
+    // Физика блоков
+    bool enable_falling_blocks;   // обрушение блоков
+    bool enable_sliding_blocks;   // скольжение по наклонным
+    float block_fall_delay;       // задержка перед падением (сек)
 } WorldParams;
 
 typedef struct {
@@ -215,6 +230,9 @@ typedef struct {
     Arrow arrows[MAX_PLAYERS * 10];  // до 10 стрел на игрока
     int bomb_count;
     int arrow_count;
+    
+    // Анимация флага
+    FlagAnimation flag_anim;
 } WorldState;
 
 // common_game.h
