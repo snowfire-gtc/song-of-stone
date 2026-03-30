@@ -26,6 +26,10 @@ void logic_update_sliding_blocks(WorldState* world);
 bool is_block_fallable(BlockType type);
 bool is_block_solid(BlockType type);
 
+// Смерть и возрождение
+void logic_check_character_death(WorldState* world, Character* ch);
+void logic_respawn_character(WorldState* world, Character* ch);
+
 // Инвентарь и предметы (из logic_items.h)
 void drop_item(WorldState* world, ItemType type, int amount, Team team, int x, int y);
 bool has_item(Character* chr, ItemType type, int amount);

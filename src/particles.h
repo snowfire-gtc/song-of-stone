@@ -18,7 +18,9 @@ typedef enum {
     PARTICLE_SPARK,
     PARTICLE_WATER,
     PARTICLE_LAVA,
-    PARTICLE_FLAG
+    PARTICLE_FLAG,
+    PARTICLE_DEATH,
+    PARTICLE_DROWNING
 } ParticleType;
 
 typedef struct {
@@ -65,5 +67,11 @@ void particles_spawn_sparks(ParticleSystem* ps, float x, float y, int amount);
 
 // Создание частиц флага
 void particles_spawn_flag_capture(ParticleSystem* ps, float x, float y, Team team);
+
+// Создание частиц смерти персонажа
+void particles_spawn_death(ParticleSystem* ps, float x, float y, Team team);
+
+// Создание частиц удушья (недостаток кислорода)
+void particles_spawn_drowning(ParticleSystem* ps, float x, float y);
 
 #endif // PARTICLES_H

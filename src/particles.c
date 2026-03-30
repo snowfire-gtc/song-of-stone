@@ -238,3 +238,45 @@ void particles_spawn_flag_capture(ParticleSystem* ps, float x, float y, Team tea
         p->rotation_speed = ((float)(rand() % 200) - 100) / 10.0f;
     }
 }
+
+// Создание частиц смерти персонажа
+void particles_spawn_death(ParticleSystem* ps, float x, float y, Team team) {
+    Color col = (team == TEAM_BLUE) ? SKYBLUE : MAROON;
+    
+    for (int i = 0; i < 30; i++) {
+        Particle* p = spawn_particle(ps);
+        if (!p) break;
+        
+        p->type = PARTICLE_DEATH;
+        p->x = x + 8 + (rand() % 16);
+        p->y = y + 8 + (rand() % 16);
+        p->vx = ((float)(rand() % 200) - 100) / 15.0f;
+        p->vy = ((float)(rand() % 200) - 100) / 15.0f;
+        p->life = 0.0f;
+        p->max_life = 1.0f + (rand() % 10) / 20.0f;
+        p->color = col;
+        p->size = 4.0f + (rand() % 4);
+        p->rotation = (float)(rand() % 360);
+        p->rotation_speed = ((float)(rand() % 300) - 150) / 10.0f;
+    }
+}
+
+// Создание частиц удушья (недостаток кислорода)
+void particles_spawn_drowning(ParticleSystem* ps, float x, float y) {
+    for (int i = 0; i < 5; i++) {
+        Particle* p = spawn_particle(ps);
+        if (!p) break;
+        
+        p->type = PARTICLE_DROWNING;
+        p->x = x + 8 + (rand() % 16);
+        p->y = y + 8 + (rand() % 16);
+        p->vx = ((float)(rand() % 60) - 30) / 30.0f;
+        p->vy = -((float)(rand() % 60) + 30) / 30.0f; // вверх
+        p->life = 0.0f;
+        p->max_life = 0.6f + (rand() % 8) / 20.0f;
+        p->color = (Color){100, 200, 255, 180}; // голубоватый полупрозрачный
+        p->size = 3.0f + (rand() % 3);
+        p->rotation = 0;
+        p->rotation_speed = 0;
+    }
+}

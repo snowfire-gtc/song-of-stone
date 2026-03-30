@@ -4,7 +4,6 @@
 *.obj
 *.out
 build/
-target/
 
 # Dependencies
 node_modules/
@@ -13,6 +12,7 @@ venv/
 __pycache__/
 .mypy_cache/
 .pytest_cache/
+target/
 .gradle/
 
 # Logs and temp files
@@ -52,4 +52,8 @@ Thumbs.db
 *.Z
 *.lz
 *.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```
