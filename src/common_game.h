@@ -82,6 +82,7 @@ typedef struct {
 
 #define MAX_PLAYERS 128
 #define MAX_NAME_LEN 16
+#define MAX_CHAT_LEN 128
 #define WORLD_MAX_WIDTH 1024
 #define WORLD_MAX_HEIGHT 256
 #define PLAYER_MAX_HP 6

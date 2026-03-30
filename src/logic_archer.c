@@ -114,8 +114,8 @@ void logic_archer_update_climbing(Character* archer, WorldState* world) {
     int block_x = archer->climbing_block_x;
     int block_y = archer->y / 16;
     if (block_y < 0 || block_y >= WORLD_MAX_HEIGHT ||
-        world->blocks[block_y][block_x].type != BLOCK_WOOD &&
-        world->blocks[block_y][block_x].type != BLOCK_STONE) {
+        (world->blocks[block_y][block_x].type != BLOCK_WOOD &&
+         world->blocks[block_y][block_x].type != BLOCK_STONE)) {
         archer->is_climbing = false;
     }
 }
