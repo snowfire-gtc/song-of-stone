@@ -2,8 +2,11 @@
 #include "logic_bomb.h"
 #include "logic_items.h"
 #include "sound.h"
+#include "particles.h"
 #include <math.h>
 #include <stddef.h>
+
+extern ParticleSystem g_particles;
 
 #define BOMB_RADIUS_PIXELS 32   // 2 блока = 32 пикс (если блок = 16x16)
 #define BOMB_GRAVITY 400.0f
@@ -88,6 +91,9 @@ void logic_bomb_explode(WorldState* world, int bomb_index) {
 
     int center_x = bomb->x;
     int center_y = bomb->y;
+
+    // Частицы взрыва
+    particles_spawn_explosion(&g_particles, center_x, center_y, BOMB_EXPLOSION_RADIUS);
 
     // Разрушение блоков
     logic_bomb_destroy_blocks(world, center_x, center_y, BOMB_EXPLOSION_RADIUS);

@@ -1,6 +1,10 @@
 // src/logic.c
 #include "logic.h"
+#include "particles.h"
+#include "sound.h"
 #include <string.h>
+
+extern ParticleSystem g_particles;
 
 void logic_update(WorldState* world, int frame_counter) {
     (void)frame_counter;
@@ -20,6 +24,12 @@ void logic_update(WorldState* world, int frame_counter) {
             Block* block_below = logic_get_block(world, block_x, block_y - 1);
             if (block_below && block_below->type == BLOCK_AIR) {
                 ch->vy -= world->params.gravity * 0.016f;
+            } else {
+                // Проверка на шаг — частицы при движении
+                if ((ch->vx > 0.5f || ch->vx < -0.5f) && (frame_counter % 10 == 0)) {
+                    BlockType ground = block_below ? block_below->type : BLOCK_DIRT;
+                    particles_spawn_step(&g_particles, ch->x, ch->y + 16, ground);
+                }
             }
         }
         

@@ -1,9 +1,12 @@
 // logic_flags.c
 #include "common_game.h"
 #include "sound.h"
+#include "particles.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
+
+extern ParticleSystem g_particles;
 
 bool is_player_on_flag(const Character* ch, Vector2 flag_pos) {
     int dx = abs(ch->x - (int)flag_pos.x);
@@ -85,6 +88,10 @@ void logic_update_flags(WorldState* world) {
                     world->params.red_score += 1;
                     world->flag_anim.capture_progress = 1.0f;
                 }
+                
+                // Частицы захвата флага
+                Vector2 flag_pos = (carrier->team == TEAM_BLUE) ? world->throne_blue : world->throne_red;
+                particles_spawn_flag_capture(&g_particles, flag_pos.x, flag_pos.y, carrier->team);
                 
                 // Возвращаем флаг на место
                 world->flag_blue_carried = false;
