@@ -5,10 +5,12 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <pthread.h>
+#include <time.h>
 
 // Глобальные переменные клиента
 static int client_sock = -1;
@@ -19,15 +21,6 @@ static PlayerState remote_players[MAX_PLAYERS];
 static int remote_player_count = 0;
 static int score_blue = 0;
 static int score_red = 0;
-static int flag_progress = 0;
-static pthread_mutex_t client_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-// Вспомогательная функция для неблокирующего сокета
-int set_nonblocking_client(int sock) {
-    int flags = fcntl(sock, F_GETFL, 0);
-    if (flags == -1) return -1;
-    return fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-}
 
 // Подключение к серверу
 int connect_to_server(const char* ip, int port) {
@@ -37,24 +30,12 @@ int connect_to_server(const char* ip, int port) {
         return -1;
     }
     
-    memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
-    
-    if (inet_pton(AF_INET, ip, &server_addr.sin_addr) <= 0) {
-        perror("Invalid address");
-        close(client_sock);
-        return -1;
-    }
+    inet_pton(AF_INET, ip, &server_addr.sin_addr);
     
     if (connect(client_sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         perror("Connection failed");
-        close(client_sock);
-        return -1;
-    }
-    
-    if (set_nonblocking_client(client_sock) < 0) {
-        perror("Set non-blocking failed");
         close(client_sock);
         return -1;
     }
@@ -64,108 +45,87 @@ int connect_to_server(const char* ip, int port) {
     return 0;
 }
 
-// Отправка пакета подключения
+// Отправка пакета
+int send_packet(void* data, size_t size) {
+    if (!connected || client_sock < 0) return -1;
+    ssize_t sent = send(client_sock, data, size, 0);
+    return (sent == (ssize_t)size) ? 0 : -1;
+}
+
+// Получение пакета
+int recv_packet(void* buffer, size_t size) {
+    if (!connected || client_sock < 0) return -1;
+    ssize_t received = recv(client_sock, buffer, size, MSG_WAITALL);
+    return (received == (ssize_t)size) ? 0 : -1;
+}
+
+// Запрос на подключение
 int send_connect_request(const char* username, int team) {
-    if (!connected) return -1;
-    
     PacketConnect pkt = {0};
-    pkt.type = MSG_CONNECT_REQ;
+    pkt.header.type = PACKET_CONNECT;
+    pkt.header.size = sizeof(PacketConnect) - sizeof(PacketHeader);
     strncpy(pkt.username, username, 31);
     pkt.team = team;
     
-    if (send(client_sock, &pkt, sizeof(pkt), 0) < 0) {
-        perror("Send failed");
-        return -1;
-    }
+    if (send_packet(&pkt, sizeof(pkt)) < 0) return -1;
     
-    // Ждем ответ
-    usleep(100000); // 100ms
+    // Ждём ответ
+    PacketHeader hdr;
+    if (recv_packet(&hdr, sizeof(hdr)) < 0) return -1;
     
-    PacketConnectResp resp;
-    int bytes = recv(client_sock, &resp, sizeof(resp), 0);
-    
-    if (bytes > 0 && resp.type == MSG_CONNECT_RESP && resp.success) {
-        my_player_id = resp.player_id;
-        printf("Connected as player ID %d (%s)\n", my_player_id, username);
-        return 0;
-    } else {
-        printf("Connection rejected by server\n");
-        return -1;
-    }
-}
-
-// Отправка ввода
-int send_input(uint8_t keys, float mouse_x, float mouse_y, 
-               uint8_t action_type, uint8_t block_to_place) {
-    if (!connected || my_player_id < 0) return -1;
-    
-    PacketInput pkt = {0};
-    pkt.type = MSG_PLAYER_INPUT;
-    pkt.player_id = my_player_id;
-    pkt.keys = keys;
-    pkt.mouse_x = mouse_x;
-    pkt.mouse_y = mouse_y;
-    pkt.action_type = action_type;
-    pkt.block_to_place = block_to_place;
-    
-    return send(client_sock, &pkt, sizeof(pkt), 0);
-}
-
-// Получение состояния игры
-int receive_game_state() {
-    if (!connected) return -1;
-    
-    PacketGameState state;
-    int bytes = recv(client_sock, &state, sizeof(state), 0);
-    
-    if (bytes > 0 && state.type == MSG_GAME_STATE) {
-        pthread_mutex_lock(&client_mutex);
-        
-        score_blue = state.score_blue;
-        score_red = state.score_red;
-        flag_progress = state.flag_progress;
-        remote_player_count = state.active_players;
-        
-        for (int i = 0; i < remote_player_count; i++) {
-            remote_players[i] = state.players[i];
-        }
-        
-        pthread_mutex_unlock(&client_mutex);
+    if (hdr.type == PACKET_CONNECT_ACK) {
+        PacketConnectAck ack;
+        memcpy(&ack.header, &hdr, sizeof(hdr));
+        if (recv_packet(&ack.player_id, sizeof(ack.player_id)) < 0) return -1;
+        my_player_id = ack.player_id;
+        printf("Authenticated as player %d\n", my_player_id);
         return 0;
     }
     
     return -1;
 }
 
-// Получение счета
-void get_scores(int* blue, int* red) {
-    *blue = score_blue;
-    *red = score_red;
+// Отправка ввода
+void send_player_input(PacketInput* input) {
+    input->header.type = PACKET_INPUT;
+    input->header.size = sizeof(PacketInput) - sizeof(PacketHeader);
+    send_packet(input, sizeof(PacketInput));
 }
 
-// Получение прогресса флага
-int get_flag_progress() {
-    return flag_progress;
-}
-
-// Получение состояния удаленных игроков
-PlayerState* get_remote_players(int* count) {
-    *count = remote_player_count;
-    return remote_players;
-}
-
-// Мой ID игрока
-int get_my_player_id() {
-    return my_player_id;
-}
-
-// Проверка подключения
-bool is_connected() {
-    return connected;
+// Получение состояния игры
+bool receive_game_state(PlayerState* players, int* count, int* blue_score, int* red_score) {
+    PacketHeader hdr;
+    
+    // Устанавливаем таймаут
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000; // 100ms
+    setsockopt(client_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    
+    if (recv_packet(&hdr, sizeof(hdr)) < 0) return false;
+    
+    if (hdr.type == PACKET_GAME_STATE) {
+        PacketGameState state;
+        memcpy(&state.header, &hdr, sizeof(hdr));
+        
+        if (recv_packet(&state.player_count, sizeof(state.player_count)) < 0) return false;
+        
+        *count = state.player_count;
+        for (int i = 0; i < state.player_count && i < MAX_PLAYERS; i++) {
+            if (recv_packet(&players[i], sizeof(PlayerState)) < 0) return false;
+        }
+        
+        if (recv_packet(blue_score, sizeof(int)) < 0) return false;
+        if (recv_packet(red_score, sizeof(int)) < 0) return false;
+        
+        return true;
+    }
+    
+    return false;
 }
 
 // Отключение
-void disconnect_from_server() {
+void disconnect_from_server(void) {
     if (client_sock >= 0) {
         close(client_sock);
         client_sock = -1;
@@ -175,23 +135,34 @@ void disconnect_from_server() {
     printf("Disconnected from server\n");
 }
 
-// Пример использования в игровом цикле
+// Остановка клиента
+void stop_client(void) {
+    disconnect_from_server();
+    printf("Client stopped\n");
+}
+
+// Получение удалённых игроков
+PlayerState* get_remote_players(int* count) {
+    *count = remote_player_count;
+    return remote_players;
+}
+
+// Standalone клиент
 #ifdef STANDALONE_CLIENT
 #include <raylib.h>
 
-int main() {
-    // Инициализация окна
+int main(void) {
     InitWindow(800, 600, "CTF Client");
     SetTargetFPS(60);
     
     const char* server_ip = "127.0.0.1";
     const char* username = "Player1";
-    int team = 0; // Blue
+    int team = 0;
     
     printf("Connecting to %s...\n", server_ip);
     
     if (connect_to_server(server_ip, SERVER_PORT) < 0) {
-        printf("Failed to connect. Make sure server is running.\n");
+        printf("Failed to connect.\n");
         CloseWindow();
         return 1;
     }
@@ -203,49 +174,47 @@ int main() {
         return 1;
     }
     
-    // Игровой цикл
+    printf("Connected as %s (ID: %d)\n", username, my_player_id);
+    
     while (!WindowShouldClose()) {
-        // Обработка ввода
-        uint8_t keys = 0;
-        if (IsKeyDown(KEY_LEFT)) keys |= 1;
-        if (IsKeyDown(KEY_RIGHT)) keys |= 2;
-        if (IsKeyDown(KEY_UP)) keys |= 4;
-        if (IsKeyDown(KEY_DOWN)) keys |= 8;
-        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) keys |= 16;
+        PacketInput input = {0};
+        input.player_id = my_player_id;
         
-        Vector2 mouse = GetMousePosition();
+        if (IsKeyDown(KEY_W)) input.move_y = -1;
+        if (IsKeyDown(KEY_S)) input.move_y = 1;
+        if (IsKeyDown(KEY_A)) input.move_x = -1;
+        if (IsKeyDown(KEY_D)) input.move_x = 1;
+        if (IsKeyPressed(KEY_SPACE)) input.jump = true;
         
-        // Отправка ввода на сервер
-        send_input(keys, mouse.x, mouse.y, 0, 0);
+        send_player_input(&input);
         
-        // Получение состояния
-        receive_game_state();
-        
-        // Отрисовка
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-        
-        // Отображение информации
-        DrawText(TextFormat("Connected as: %s (ID: %d)", username, my_player_id), 10, 10, 20, DARKGREEN);
-        DrawText(TextFormat("Score - Blue: %d | Red: %d", score_blue, score_red), 10, 40, 20, BLACK);
-        DrawText(TextFormat("Flag Progress: %d%%", flag_progress), 10, 70, 20, ORANGE);
-        
-        // Отрисовка других игроков
-        int count;
-        PlayerState* players = get_remote_players(&count);
-        for (int i = 0; i < count; i++) {
-            if (players[i].id != my_player_id) {
-                Color c = (players[i].team == 0) ? BLUE : RED;
-                DrawCircle(players[i].x * 20, players[i].y * 20, 15, c);
-                DrawText(players[i].username, players[i].x * 20 - 20, players[i].y * 20 - 30, 10, BLACK);
+        int count = 0;
+        int blue = 0, red = 0;
+        if (receive_game_state(remote_players, &count, &blue, &red)) {
+            remote_player_count = count;
+            score_blue = blue;
+            score_red = red;
+            
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            
+            for (int i = 0; i < count; i++) {
+                PlayerState* p = &remote_players[i];
+                Color col = (p->team == TEAM_BLUE) ? BLUE : RED;
+                DrawRectangle(p->x * 2, p->y * 2, 16, 16, col);
+                DrawText(p->username, p->x * 2, p->y * 2 - 10, 10, BLACK);
             }
+            
+            char score_text[64];
+            snprintf(score_text, sizeof(score_text), "Blue: %d | Red: %d", score_blue, score_red);
+            DrawText(score_text, 10, 10, 20, BLACK);
+            
+            DrawFPS(700, 10);
+            EndDrawing();
         }
-        
-        DrawFPS(700, 10);
-        EndDrawing();
     }
     
-    disconnect_from_server();
+    stop_client();
     CloseWindow();
     return 0;
 }

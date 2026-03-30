@@ -5,10 +5,12 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <pthread.h>
+#include <time.h>
 
 // Глобальные переменные сервера
 static int server_fd = -1;
@@ -253,7 +255,20 @@ void stop_server() {
 }
 
 #ifdef STANDALONE_SERVER
-int main() {
+int main(void) {
+    if (start_server() < 0) {
+        return 1;
+    }
+    
+    printf("CTF Server running. Press Ctrl+C to stop.\n");
+    server_accept_loop();
+    
+    stop_server();
+    return 0;
+}
+#else
+// Standalone server entry point
+int server_main(void) {
     if (start_server() < 0) {
         return 1;
     }

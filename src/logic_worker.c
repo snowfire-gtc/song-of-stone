@@ -1,7 +1,10 @@
 // logic_worker.c
 #include "logic_worker.h"
 #include "sound.h"
+#include "particles.h"
 #include <math.h>
+
+extern ParticleSystem g_particles;
 
 // Обновление
 void logic_worker_update(Character* worker, WorldState* world, int frame_counter) {
@@ -27,29 +30,37 @@ void logic_worker_dig_block(Character* worker, WorldState* world, int block_x, i
     worker->anim_state = ANIM_DIG;
     worker->frame_counter = 0;
 
+    // Пиксельные координаты для частиц
+    float px = block_x * 16.0f + 8.0f;
+    float py = block_y * 16.0f + 8.0f;
+
     // Добыча в зависимости от типа
     if (type == BLOCK_DIRT) {
         block->type = BLOCK_AIR;
         block->has_grass = false;
         worker->wood += 1; // или можно dirt, но в инвентаре — только wood/stone
         sound_play(SOUND_DIG_GRASS);
+        particles_spawn_block_break(&g_particles, px, py, BLOCK_DIRT, 8);
     }
     else if (type == BLOCK_STONE) {
         // Рабочий разрушает камень мгновенно (по ТЗ)
         block->type = BLOCK_AIR;
         worker->stone += 10;
         sound_play(SOUND_DIG_STONE);
+        particles_spawn_block_break(&g_particles, px, py, BLOCK_STONE, 12);
     }
     else if (type == BLOCK_GOLD) {
         block->type = BLOCK_AIR;
         worker->coins += 2;
         sound_play(SOUND_DIG_GOLD);
+        particles_spawn_block_break(&g_particles, px, py, BLOCK_GOLD, 10);
     }
     else if (type == BLOCK_WOOD) {
         // Рубка дерева
         block->type = BLOCK_AIR;
         worker->wood += 2;
         sound_play(SOUND_DIG_WOOD);
+        particles_spawn_block_break(&g_particles, px, py, BLOCK_WOOD, 8);
         // Сдвиг верхних блоков вниз
         for (int y = block_y + 1; y < WORLD_MAX_HEIGHT; y++) {
             if (world->blocks[y][block_x].type == BLOCK_WOOD) {
@@ -64,6 +75,7 @@ void logic_worker_dig_block(Character* worker, WorldState* world, int block_x, i
         // Срезание травы
         block->has_grass = false;
         sound_play(SOUND_DIG_GRASS);
+        particles_spawn_block_break(&g_particles, px, py, BLOCK_LEAFS, 4);
     }
 }
 

@@ -1,15 +1,19 @@
 ```
-# Build artifacts
-build/
+# Compiled and build artifacts
 *.o
 *.obj
 *.out
+build/
+target/
 
 # Dependencies
 node_modules/
-.venv/
 venv/
+.venv/
 __pycache__/
+.mypy_cache/
+.pytest_cache/
+.gradle/
 
 # Logs and temp files
 *.log
@@ -25,14 +29,9 @@ __pycache__/
 .vscode/
 .idea/
 
-# OS files
+# System files
 .DS_Store
 Thumbs.db
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
 
 # Compressed files
 *.zip

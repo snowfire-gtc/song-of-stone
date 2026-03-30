@@ -16,6 +16,10 @@
 #include "sound.h"
 #include "gen.h"
 #include "debug_console.h"
+#include "particles.h"
+
+// Глобальная система частиц (объявление, определение в particles.c)
+extern ParticleSystem g_particles;
 
 int main(void) {
     const int WIN_W = 1280;
@@ -29,6 +33,7 @@ int main(void) {
     draw_archer_init();
     draw_worker_init();
     debug_console_init();
+    particles_init(&g_particles);
 
     WorldState world = gen_world_default();
 
@@ -53,6 +58,7 @@ int main(void) {
         logic_bomb_update_all(&world, frame_counter);
         logic_arrow_update_all(&world, frame_counter);
         debug_console_update(&world);
+        particles_update(&g_particles, GetFrameTime());
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -65,6 +71,7 @@ int main(void) {
         draw_bomb_all(&world, frame_counter);
         draw_arrow_all(&world, frame_counter);
         draw_ui(&world);
+        particles_draw(&g_particles);
 
         draw_debug_vectors(&world);
         draw_debug_console();
@@ -79,6 +86,7 @@ int main(void) {
     draw_worker_unload();
     draw_bomb_unload();
     draw_arrow_unload();
+    sound_unload();
     CloseWindow();
     return 0;
 }

@@ -14,7 +14,8 @@ SRCS := main.c logic.c gen.c draw.c sound.c \
         draw_warrior.c draw_archer.c draw_worker.c draw_bomb.c draw_arrow.c draw_ui.c \
         debug_console.c \
         logic_worker.c logic_warrior.c logic_archer.c logic_bomb.c logic_arrow.c \
-        logic_physics.c logic_flags.c logic_items.c
+        logic_physics.c logic_flags.c logic_items.c \
+        particles.c
 OBJS := $(SRCS:%.c=$(BUILD_DIR)/%.o)
 TARGET := $(BUILD_DIR)/song-of-stone
 
