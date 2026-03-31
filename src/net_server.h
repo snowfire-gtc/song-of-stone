@@ -5,24 +5,17 @@
 #include "common_game.h"
 #include "net_protocol.h"
 
-// Сетевые заголовки только для сервера
-#ifdef DEDICATED_SERVER
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif
 
 #define MAX_CLIENTS 4
 #define SERVER_TICK_RATE 60
 
 typedef struct {
     int socket_fd;
-#ifdef DEDICATED_SERVER
     struct sockaddr_in address;
     socklen_t addr_len;
-#else
-    uint8_t address_reserved[32];  // Заглушка для клиента
-#endif
     int connected;
     int is_bot;
     char name[32];

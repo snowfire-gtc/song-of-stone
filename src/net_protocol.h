@@ -20,7 +20,9 @@ typedef enum {
     PKT_HELLO,          // клиент → сервер: "я новый игрок"
     PKT_WELCOME,        // сервер → клиент: добро пожаловать (ID)
     PKT_INPUT,          // клиент → сервер: управление
+    PKT_ACTION,         // клиент → сервер: действие (атака, строительство)
     PKT_SNAPSHOT,       // сервер → клиент: состояние мира
+    PKT_WORLD_STATE,    // сервер → клиент: полное состояние мира
     PKT_DELTA,          // сервер → клиент: дельта-обновление
     PKT_BLOCK_CHANGE,   // клиент → сервер: изменение блока
     PKT_CHAT,           // все ↔ все: чат
@@ -58,6 +60,22 @@ typedef struct {
     int16_t mouse_x;          // смещение мыши
     int16_t mouse_y;
 } PlayerInput;
+
+// Пакет ввода для сети
+typedef struct {
+    uint8_t left;
+    uint8_t right;
+    uint8_t jump;
+    uint8_t action;
+    uint8_t secondary;
+} PacketInput;
+
+// Пакет действия для сети
+typedef struct {
+    uint8_t action_type;
+    int16_t x;
+    int16_t y;
+} PacketAction;
 
 // --- Снапшот персонажа (оптимизированный) ---
 typedef struct {
@@ -140,10 +158,14 @@ typedef struct {
 // Расчет контрольной суммы (CRC32 или простая)
 uint32_t calculate_checksum(const void* data, size_t len);
 bool verify_packet(const NetworkPacket* pkt);
+bool verify_packet_header(const PacketHeader* header);
+
+// Инициализация заголовка пакета
+void init_packet_header(PacketHeader* header, PacketType type, uint32_t ack, uint32_t sequence);
 
 // Сериализация/десериализация
-size_t serialize_packet(const NetworkPacket* pkt, uint8_t* buffer, size_t buf_size);
-bool deserialize_packet(const uint8_t* buffer, size_t len, NetworkPacket* pkt);
+size_t serialize_packet(const PacketHeader* header, const uint8_t* payload, size_t payload_size, uint8_t* buffer, size_t buf_size);
+bool deserialize_packet(const uint8_t* buffer, size_t len, PacketHeader* header, uint8_t* payload, size_t payload_buf_size, size_t* payload_size);
 
 // Дельта-кодирование
 void encode_delta(const SnapshotChar* current, const SnapshotChar* previous, DeltaPos* delta);
@@ -153,7 +175,29 @@ void decode_delta(const DeltaPos* delta, SnapshotChar* previous, SnapshotChar* r
 size_t compress_block_changes(const BlockChange* changes, uint8_t count, uint8_t* output);
 size_t decompress_block_changes(const uint8_t* input, size_t len, BlockChange* output, size_t max_count);
 
-#endif // NET_PROTOCOL_H
+// Сериализация/десериализация ввода и действий
+size_t serialize_input(const PacketInput* input, uint8_t* buffer, size_t buf_size);
+bool deserialize_input(const uint8_t* buffer, size_t len, PacketInput* input);
+size_t serialize_action(const PacketAction* action, uint8_t* buffer, size_t buf_size);
+bool deserialize_action(const uint8_t* buffer, size_t len, PacketAction* action);
+
+// Кодирование персонажа для снапшота
+void encode_character_delta(const Character* current, const Character* previous, SnapshotChar* out);
+
+// Снапшот состояния для интерполяции
+typedef struct {
+    uint32_t timestamp;
+    Weather weather;
+    int character_count;
+    SnapshotChar characters[MAX_PLAYERS];
+} PacketSnapshot;
+
+// Декодирование персонажа из снапшота
+void decode_character_delta(const SnapshotChar* ec, Character* ch);
+
+// Сериализация/десериализация снапшота
+size_t serialize_snapshot(const PacketSnapshot* snapshot, uint8_t* buffer, size_t buf_size);
+bool deserialize_snapshot(const uint8_t* buffer, size_t len, PacketSnapshot* snapshot);
 
 // Типы действий (для клиент-серверного взаимодействия)
 typedef enum {
@@ -167,16 +211,13 @@ typedef enum {
     ACTION_PLACE_LADDER
 } ActionType;
 
-// Снапшот состояния для интерполяции
+// Пакет изменений блоков
 typedef struct {
-    uint32_t tick;
-    int char_count;
-    struct {
-        int x, y;
-        float vx, vy;
-        CharacterType type;
-        Team team;
-        int hp;
-        AnimationState anim;
-    } chars[MAX_PLAYERS];
-} PacketSnapshot;
+    int16_t x, y;
+    uint16_t count;
+    uint8_t data[];  // гибкий массив для сжатых данных
+} PacketBlockChange;
+
+#define MAX_CHARACTERS MAX_PLAYERS
+
+#endif // NET_PROTOCOL_H

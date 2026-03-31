@@ -148,6 +148,7 @@ typedef struct {
     bool is_holding_flag;
     char name[MAX_NAME_LEN];
     int player_id;
+    bool facing_right;    // направление взгляда (true = вправо)
 
     // Инвентарь
     int coins;

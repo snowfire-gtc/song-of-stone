@@ -1,6 +1,8 @@
 #include "menu.h"
 #include "main.h"  // Для доступа к g_game_state
 #include "settings.h"
+#include "local_server.h"
+#include "client.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -161,7 +163,12 @@ void menu_render_main(Menu* menu, WorldState* world) {
     menu_draw_header("SONG OF STONE", (Vector2){start_x + 50, start_y - 80});
     
     if (menu_draw_button("Play Singleplayer", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
-        // Запуск одиночной игры - создаём персонажа игрока
+        // Запуск одиночной игры с локальным сервером
+        // Инициализация локального сервера на порту 5555
+        
+        const int LOCAL_PORT = 5555;
+        
+        // Создание персонажа игрока
         world->char_count = 1;
         Character* player = &world->characters[0];
         memset(player, 0, sizeof(Character));
@@ -178,9 +185,30 @@ void menu_render_main(Menu* menu, WorldState* world) {
         strcpy(player->name, "Player");
         
         world->local_player_id = 0;
+        world->is_multiplayer = 0; // Одиночная игра
         
-        g_game_state = GAME_STATE_PLAYING;
-        menu->visible = false;
+        // Инициализация локального сервера
+        if (local_server_init(&g_local_server, world, LOCAL_PORT)) {
+            printf("Локальный сервер успешно инициализирован\n");
+            
+            // Подключение клиента к локальному серверу
+            if (client_init(&g_client, "127.0.0.1", LOCAL_PORT)) {
+                printf("Клиент подключается к локальному серверу...\n");
+                g_is_singleplayer_with_server = true;
+                g_game_state = GAME_STATE_CONNECTING;
+                menu->visible = false;
+            } else {
+                fprintf(stderr, "Не удалось подключить клиент к локальному серверу\n");
+                local_server_shutdown(&g_local_server);
+                g_is_singleplayer_with_server = false;
+            }
+        } else {
+            fprintf(stderr, "Не удалось инициализировать локальный сервер\n");
+            // Запуск в старом режиме (без сети)
+            g_is_singleplayer_with_server = false;
+            g_game_state = GAME_STATE_PLAYING;
+            menu->visible = false;
+        }
     }
     
     if (menu_draw_button("Multiplayer", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
