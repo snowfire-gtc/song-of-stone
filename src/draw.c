@@ -25,8 +25,8 @@ void init_ui_font_internal(void) {
 
 void draw_background(WorldState* world) {
     (void)world;
-    // Простой градиентный фон (небо)
-    DrawRectangleGradientV(0, 0, 1280, 720, SKYBLUE, LIGHTGRAY);
+    // Чёрный фон за пределами карты
+    DrawRectangle(0, 0, 1280, 720, BLACK);
 }
 
 void draw_blocks(WorldState* world) {

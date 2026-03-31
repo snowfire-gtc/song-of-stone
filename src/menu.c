@@ -191,6 +191,10 @@ void menu_render_main(Menu* menu, WorldState* world) {
         g_camera.target.x = player->x + 8;  // центр персонажа
         g_camera.target.y = player->y + 16;
         
+        // Сброс свободного режима камеры при старте игры
+        g_camera_free_mode = false;
+        g_camera_free_position = g_camera.target;
+        
         // Инициализация локального сервера
         if (local_server_init(&g_local_server, world, LOCAL_PORT)) {
             printf("Локальный сервер успешно инициализирован\n");
