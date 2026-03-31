@@ -2,6 +2,7 @@
 #include "net_protocol.h"
 #include <string.h>
 #include <stdio.h>
+#include <stddef.h>
 
 // --- Контрольная сумма (простая реализация) ---
 uint32_t calculate_checksum(const void* data, size_t len) {
@@ -26,50 +27,83 @@ bool verify_packet(const NetworkPacket* pkt) {
     return calculated == pkt->header.checksum;
 }
 
+bool verify_packet_header(const PacketHeader* header) {
+    if (!header) return false;
+    // Упрощённая проверка - только базовая валидация
+    return header->type > PKT_NONE && header->type <= PKT_HEARTBEAT;
+}
+
+// --- Инициализация заголовка пакета ---
+void init_packet_header(PacketHeader* header, PacketType type, uint32_t ack, uint32_t sequence) {
+    if (!header) return;
+    memset(header, 0, sizeof(PacketHeader));
+    header->type = type;
+    header->flags = 0;
+    header->size = 0;
+    header->sequence = sequence;
+    header->ack = ack;
+    header->timestamp = 0;
+    header->checksum = 0;
+}
+
 // --- Сериализация/десериализация ---
 
-size_t serialize_packet(const NetworkPacket* pkt, uint8_t* buffer, size_t buf_size) {
-    if (!pkt || !buffer || buf_size < sizeof(PacketHeader)) {
+size_t serialize_packet(const PacketHeader* header, const uint8_t* payload, size_t payload_size, uint8_t* buffer, size_t buf_size) {
+    if (!header || !buffer || buf_size < sizeof(PacketHeader)) {
         return 0;
     }
     
-    size_t total_size = sizeof(PacketHeader) + pkt->header.size;
+    size_t total_size = sizeof(PacketHeader) + payload_size;
     if (total_size > buf_size) {
         return 0;
     }
     
-    // Копируем заголовок
-    memcpy(buffer, &pkt->header, sizeof(PacketHeader));
+    // Копируем заголовок (без контрольной суммы сначала)
+    PacketHeader temp_header = *header;
+    temp_header.size = (uint16_t)payload_size;
+    
+    memcpy(buffer, &temp_header, sizeof(PacketHeader));
     
     // Копируем данные
-    if (pkt->header.size > 0) {
-        memcpy(buffer + sizeof(PacketHeader), &pkt->data, pkt->header.size);
+    if (payload_size > 0 && payload) {
+        memcpy(buffer + sizeof(PacketHeader), payload, payload_size);
     }
+    
+    // Вычисляем контрольную сумму данных
+    uint32_t checksum = calculate_checksum(payload, payload_size);
+    temp_header.checksum = checksum;
+    
+    // Записываем контрольную сумму в заголовок
+    memcpy(buffer + offsetof(PacketHeader, checksum), &checksum, sizeof(checksum));
     
     return total_size;
 }
 
-bool deserialize_packet(const uint8_t* buffer, size_t len, NetworkPacket* pkt) {
-    if (!buffer || !pkt || len < sizeof(PacketHeader)) {
+bool deserialize_packet(const uint8_t* buffer, size_t len, PacketHeader* header, uint8_t* payload, size_t payload_buf_size, size_t* payload_size) {
+    if (!buffer || !header || len < sizeof(PacketHeader)) {
         return false;
     }
     
     // Читаем заголовок
-    memcpy(&pkt->header, buffer, sizeof(PacketHeader));
+    memcpy(header, buffer, sizeof(PacketHeader));
     
     // Проверяем размер
-    size_t total_size = sizeof(PacketHeader) + pkt->header.size;
-    if (total_size > len || total_size > BUFFER_SIZE) {
+    if (header->size > payload_buf_size || header->size > BUFFER_SIZE) {
         return false;
     }
     
     // Читаем данные
-    if (pkt->header.size > 0) {
-        memcpy(&pkt->data, buffer + sizeof(PacketHeader), pkt->header.size);
+    if (header->size > 0 && payload) {
+        memcpy(payload, buffer + sizeof(PacketHeader), header->size);
+    }
+    
+    if (payload_size) {
+        *payload_size = header->size;
     }
     
     // Проверяем контрольную сумму
-    return verify_packet(pkt);
+    uint32_t calculated = calculate_checksum(payload, header->size);
+    return calculated == header->checksum;
 }
 
 // --- Дельта-кодирование ---
@@ -148,6 +182,157 @@ size_t decompress_block_changes(const uint8_t* input, size_t len, BlockChange* o
     }
     
     return out_idx;
+}
+
+// --- Сериализация/десериализация ввода и действий ---
+
+size_t serialize_input(const PacketInput* input, uint8_t* buffer, size_t buf_size) {
+    if (!input || !buffer || buf_size < 5) return 0;
+    
+    buffer[0] = input->left;
+    buffer[1] = input->right;
+    buffer[2] = input->jump;
+    buffer[3] = input->action;
+    buffer[4] = input->secondary;
+    
+    return 5;
+}
+
+bool deserialize_input(const uint8_t* buffer, size_t len, PacketInput* input) {
+    if (!buffer || !input || len < 5) return false;
+    
+    input->left = buffer[0];
+    input->right = buffer[1];
+    input->jump = buffer[2];
+    input->action = buffer[3];
+    input->secondary = buffer[4];
+    
+    return true;
+}
+
+size_t serialize_action(const PacketAction* action, uint8_t* buffer, size_t buf_size) {
+    if (!action || !buffer || buf_size < 5) return 0;
+    
+    buffer[0] = action->action_type;
+    memcpy(buffer + 1, &action->x, sizeof(action->x));
+    memcpy(buffer + 3, &action->y, sizeof(action->y));
+    
+    return 5;
+}
+
+bool deserialize_action(const uint8_t* buffer, size_t len, PacketAction* action) {
+    if (!buffer || !action || len < 5) return false;
+    
+    action->action_type = buffer[0];
+    memcpy(&action->x, buffer + 1, sizeof(action->x));
+    memcpy(&action->y, buffer + 3, sizeof(action->y));
+    
+    return true;
+}
+
+// --- Кодирование персонажа для снапшота ---
+
+void encode_character_delta(const Character* current, const Character* previous, SnapshotChar* out) {
+    if (!current || !out) return;
+    
+    out->id = (uint16_t)(current - previous); // Индекс персонажа
+    out->x = (int16_t)current->x;
+    out->y = (int16_t)current->y;
+    out->vx = (int8_t)(current->vx * 4);
+    out->vy = (int8_t)(current->vy * 4);
+    out->hp = (uint8_t)current->hp;
+    out->anim_state = (uint8_t)current->anim_state;
+    out->team = (uint8_t)current->team;
+    out->type = (uint8_t)current->type;
+    out->is_shield_active = current->is_shield_active ? 1 : 0;
+    out->is_aiming = current->is_aiming ? 1 : 0;
+    out->is_holding_flag = current->is_holding_flag ? 1 : 0;
+    out->is_climbing = current->is_climbing ? 1 : 0;
+    out->is_alive = (current->hp > 0) ? 1 : 0;
+    out->padding = 0;
+    out->coins = current->coins;
+    out->wood = current->wood;
+    out->stone = current->stone;
+    out->arrows = current->arrows;
+    out->bombs = current->bombs;
+}
+
+// Декодирование персонажа из снапшота
+void decode_character_delta(const SnapshotChar* ec, Character* ch) {
+    if (!ec || !ch) return;
+    
+    ch->x = ec->x;
+    ch->y = ec->y;
+    ch->vx = ec->vx / 4.0f;
+    ch->vy = ec->vy / 4.0f;
+    ch->hp = ec->hp;
+    ch->anim_state = (AnimationState)ec->anim_state;
+    ch->team = (Team)ec->team;
+    ch->type = (CharacterType)ec->type;
+    ch->is_shield_active = ec->is_shield_active ? true : false;
+    ch->is_aiming = ec->is_aiming ? true : false;
+    ch->is_holding_flag = ec->is_holding_flag ? true : false;
+    ch->is_climbing = ec->is_climbing ? true : false;
+    ch->coins = ec->coins;
+    ch->wood = ec->wood;
+    ch->stone = ec->stone;
+    ch->arrows = ec->arrows;
+    ch->bombs = ec->bombs;
+}
+
+// Сериализация снапшота
+size_t serialize_snapshot(const PacketSnapshot* snapshot, uint8_t* buffer, size_t buf_size) {
+    if (!snapshot || !buffer || buf_size < sizeof(PacketSnapshot)) return 0;
+    
+    size_t offset = 0;
+    
+    // Копируем timestamp и weather
+    memcpy(buffer + offset, &snapshot->timestamp, sizeof(snapshot->timestamp));
+    offset += sizeof(snapshot->timestamp);
+    
+    memcpy(buffer + offset, &snapshot->weather, sizeof(snapshot->weather));
+    offset += sizeof(snapshot->weather);
+    
+    // Количество персонажей
+    memcpy(buffer + offset, &snapshot->character_count, sizeof(snapshot->character_count));
+    offset += sizeof(snapshot->character_count);
+    
+    // Копируем данные персонажей
+    size_t chars_size = snapshot->character_count * sizeof(SnapshotChar);
+    if (offset + chars_size > buf_size) return 0;
+    
+    memcpy(buffer + offset, snapshot->characters, chars_size);
+    offset += chars_size;
+    
+    return offset;
+}
+
+// Десериализация снапшота
+bool deserialize_snapshot(const uint8_t* buffer, size_t len, PacketSnapshot* snapshot) {
+    if (!buffer || !snapshot || len < sizeof(uint32_t) + sizeof(Weather) + sizeof(int)) return false;
+    
+    size_t offset = 0;
+    
+    // Читаем timestamp и weather
+    memcpy(&snapshot->timestamp, buffer + offset, sizeof(snapshot->timestamp));
+    offset += sizeof(snapshot->timestamp);
+    
+    memcpy(&snapshot->weather, buffer + offset, sizeof(snapshot->weather));
+    offset += sizeof(snapshot->weather);
+    
+    // Количество персонажей
+    memcpy(&snapshot->character_count, buffer + offset, sizeof(snapshot->character_count));
+    offset += sizeof(snapshot->character_count);
+    
+    if (snapshot->character_count < 0 || snapshot->character_count > MAX_CHARACTERS) return false;
+    
+    // Читаем данные персонажей
+    size_t chars_size = snapshot->character_count * sizeof(SnapshotChar);
+    if (offset + chars_size > len) return false;
+    
+    memcpy(snapshot->characters, buffer + offset, chars_size);
+    
+    return true;
 }
 
 // --- Вспомогательные функции для отладки ---

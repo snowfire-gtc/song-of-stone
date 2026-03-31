@@ -16,7 +16,8 @@ SRCS := main.c logic.c gen.c draw.c sound.c \
         debug_console.c \
         logic_worker.c logic_warrior.c logic_archer.c logic_bomb.c logic_arrow.c \
         logic_physics.c logic_flags.c logic_items.c \
-        particles.c net_protocol.c client_stub.c menu.c settings.c perlin.c
+        particles.c net_protocol.c menu.c settings.c perlin.c \
+        local_server.c net_server.c client.c
 OBJS := $(SRCS:%.c=$(BUILD_DIR)/%.o)
 TARGET := $(BUILD_DIR)/song-of-stone
 

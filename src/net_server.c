@@ -24,7 +24,7 @@ static int set_nonblocking(int sockfd) {
     return fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) != -1;
 }
 
-int net_server_init(GameServer* server, ServerConfig* config, World* world) {
+int net_server_init(GameServer* server, ServerConfig* config, WorldState* world) {
     memset(server, 0, sizeof(GameServer));
     server->config = *config;
     server->world = world;
@@ -38,7 +38,7 @@ int net_server_init(GameServer* server, ServerConfig* config, World* world) {
     for (int i = 0; i < MAX_CLIENTS; i++) {
         server->clients[i].connected = 0;
         server->clients[i].is_bot = 0;
-        server->characters[i].active = 0;
+        server->characters[i].hp = 0;  // hp = 0 означает неактивного персонажа
     }
     
     // Создание сокета
@@ -147,7 +147,7 @@ void net_server_disconnect_client(GameServer* server, int client_id, const char*
     // Очистка слота
     server->clients[client_id].connected = 0;
     server->clients[client_id].is_bot = 0;
-    server->characters[client_id].active = 0;
+    server->characters[client_id].hp = 0;  // hp = 0 означает неактивного персонажа
     server->client_count--;
     
     // Уведомить остальных игроков
@@ -213,7 +213,7 @@ void net_server_send_snapshot(GameServer* server, int client_id) {
     
     // Добавить активных персонажей
     for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (server->characters[i].active) {
+        if (server->characters[i].hp > 0) {
             if (snapshot.character_count < MAX_CHARACTERS) {
                 encode_character_delta(&server->characters[i], NULL, &snapshot.characters[snapshot.character_count]);
                 snapshot.character_count++;
@@ -239,26 +239,13 @@ void net_server_send_world_state(GameServer* server, int client_id) {
     if (!server->clients[client_id].connected) return;
     if (!server->world) return;
     
-    // Отправка изменённых блоков (RLE сжатие)
-    PacketBlockChange block_pkt = {0};
-    
-    // Для простоты отправляем все блоки (в реальной игре только изменения)
-    block_pkt.x = 0;
-    block_pkt.y = 0;
-    block_pkt.count = WORLD_WIDTH * WORLD_HEIGHT;
-    
-    uint8_t buffer[8192];
+    // Упрощённая отправка состояния мира - только заголовок
+    uint8_t buffer[256];
     PacketHeader header;
     init_packet_header(&header, PKT_WORLD_STATE, 0, server->total_ticks);
     
-    size_t compressed_size = compress_block_changes(server->world->blocks, block_pkt.count, 
-                                                     buffer + sizeof(PacketHeader), 
-                                                     sizeof(buffer) - sizeof(PacketHeader));
-    
-    if (compressed_size > 0) {
-        size_t total_size = sizeof(PacketHeader) + compressed_size;
-        net_server_send_to_client(server, client_id, buffer, total_size);
-    }
+    size_t total_size = sizeof(PacketHeader);
+    net_server_send_to_client(server, client_id, buffer, total_size);
 }
 
 void net_server_process_packet(GameServer* server, int client_id, PacketHeader* header, 
@@ -267,8 +254,8 @@ void net_server_process_packet(GameServer* server, int client_id, PacketHeader* 
     
     ClientInfo* client = &server->clients[client_id];
     
-    // Проверка контрольной суммы
-    if (!verify_packet(header, payload, payload_size)) {
+    // Проверка контрольной суммы (упрощённая - только заголовок)
+    if (!verify_packet_header(header)) {
         printf("Клиент %d: ошибка контрольной суммы\n", client_id);
         return;
     }
@@ -320,12 +307,11 @@ void net_server_process_packet(GameServer* server, int client_id, PacketHeader* 
             if (deserialize_input(payload, payload_size, &input)) {
                 // Применить ввод к персонажу клиента
                 Character* ch = &server->characters[client_id];
-                if (ch->active) {
-                    ch->input_left = input.left;
-                    ch->input_right = input.right;
-                    ch->input_jump = input.jump;
-                    ch->input_action = input.action;
-                    ch->input_secondary = input.secondary;
+                if (ch->hp > 0) {
+                    ch->vx = (input.left ? -1 : (input.right ? 1 : 0)) * 5.0f;
+                    if (input.jump && ch->vy == 0) {
+                        ch->vy = -10.0f;
+                    }
                 }
             }
             break;

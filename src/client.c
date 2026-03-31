@@ -229,10 +229,12 @@ int client_receive_packets(GameClient* client) {
             case PKT_WELCOME: {
                 // Сервер подтвердил подключение
                 client->connected = 1;
-                client->player_id = header.player_id;
+                if (payload_size >= sizeof(uint16_t)) {
+                    memcpy(&client->player_id, payload, sizeof(uint16_t));
+                }
                 
-                if (payload_size > 0) {
-                    strncpy(client->server_name, (char*)payload, sizeof(client->server_name) - 1);
+                if (payload_size > sizeof(uint16_t)) {
+                    strncpy(client->server_name, (char*)payload + sizeof(uint16_t), sizeof(client->server_name) - 1);
                 }
                 
                 printf("Подключён как игрок %d к серверу \"%s\"\n", 
@@ -288,13 +290,11 @@ void client_apply_snapshot(GameClient* client, PacketSnapshot* snapshot) {
     
     // Обновление персонажей из снапшота
     for (int i = 0; i < snapshot->character_count && i < MAX_CHARACTERS; i++) {
-        EncodedCharacter* ec = &snapshot->characters[i];
+        SnapshotChar* ec = &snapshot->characters[i];
         Character* ch = &client->local_world.characters[i];
         
         // Декодирование дельты
         decode_character_delta(ec, ch);
-        
-        ch->active = 1;
     }
     
     // Обновление времени последнего снапшота
