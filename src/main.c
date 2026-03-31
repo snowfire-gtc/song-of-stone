@@ -119,11 +119,61 @@ int main(void) {
                 }
                 
                 // Обновление логики игры
-                if (ch->type == CHAR_WORKER) {
-                    logic_worker_update(ch, world, frame_counter);
-                    if (IsKeyPressed(KEY_E)) {
-                        int bx = ch->x / 16, by = ch->y / 16;
-                        logic_worker_dig_block(ch, world, bx, by);
+                Character* player = &world->characters[world->local_player_id];
+                
+                // Обработка ввода игрока (одиночная игра)
+                if (!is_networked && player->hp > 0) {
+                    float speed = 200.0f;
+                    float jump_force = -350.0f;
+                    
+                    // Проверка: на земле ли персонаж
+                    int block_x = player->x / 16;
+                    int block_y = player->y / 16;
+                    Block* block_below = logic_get_block(world, block_x, block_y - 1);
+                    bool on_ground = (block_below && block_below->type != BLOCK_AIR && 
+                                      block_below->type != BLOCK_WATER);
+                    
+                    // Движение влево/вправо
+                    if (IsKeyDown(g_settings.controls.move_left)) {
+                        player->vx = -speed;
+                        player->facing_right = false;
+                    } else if (IsKeyDown(g_settings.controls.move_right)) {
+                        player->vx = speed;
+                        player->facing_right = true;
+                    } else {
+                        player->vx = 0;
+                    }
+                    
+                    // Прыжок
+                    if (IsKeyPressed(g_settings.controls.jump) && on_ground) {
+                        player->vy = jump_force;
+                    }
+                    
+                    // Специфичные действия для классов
+                    if (player->type == CHAR_WORKER) {
+                        logic_worker_update(player, world, frame_counter);
+                        if (IsKeyPressed(KEY_E)) {
+                            int bx = player->x / 16, by = player->y / 16;
+                            logic_worker_dig_block(player, world, bx, by);
+                        }
+                    } else if (player->type == CHAR_ARCHER) {
+                        logic_archer_update(player, world, frame_counter);
+                        // Лазание
+                        if (player->is_climbing) {
+                            if (IsKeyDown(g_settings.controls.move_up)) {
+                                player->y -= 80.0f * GetFrameTime();
+                            }
+                            if (IsKeyDown(g_settings.controls.move_down)) {
+                                player->y += 80.0f * GetFrameTime();
+                            }
+                        }
+                    } else if (player->type == CHAR_WARRIOR) {
+                        // Воин может использовать щит
+                        if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) {
+                            player->is_shield_active = true;
+                        } else {
+                            player->is_shield_active = false;
+                        }
                     }
                 }
                 
