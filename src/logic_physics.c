@@ -40,8 +40,9 @@ void logic_update_falling_blocks(WorldState* world) {
         return;
     }
     
-    // Проходим снизу вверх, справа налево для корректного падения
-    for (int y = 0; y < world->params.height_blocks - 1; y++) {
+    // Проходим сверху вниз (от больших y к меньшим), справа налево для корректного падения
+    // В нашей системе координат y=0 это низ, поэтому блоки должны падать к уменьшению y
+    for (int y = world->params.height_blocks - 1; y > 0; y--) {
         for (int x = 0; x < world->params.width_blocks; x++) {
             Block* block = &world->blocks[y][x];
             
@@ -50,8 +51,8 @@ void logic_update_falling_blocks(WorldState* world) {
                 continue;
             }
             
-            // Проверяем блок под текущим
-            Block* block_below = &world->blocks[y + 1][x];
+            // Проверяем блок под текущим (y - 1, так как y=0 это низ)
+            Block* block_below = &world->blocks[y - 1][x];
             
             // Если внизу воздух - блок падает
             if (block_below->type == BLOCK_AIR || block_below->type == BLOCK_WATER) {
@@ -70,7 +71,7 @@ void logic_update_falling_blocks(WorldState* world) {
                     block->grass_variant = 0;
                     block->fall_timer = 0;
                     
-                    // Перемещаем в блок ниже
+                    // Перемещаем в блок ниже (y - 1)
                     block_below->type = falling_type;
                     block_below->has_grass = has_grass;
                     block_below->grass_variant = grass_variant;
@@ -91,7 +92,7 @@ void logic_update_sliding_blocks(WorldState* world) {
     
     // Логика скольжения по наклонным поверхностям
     // Для простоты: если блок сыпучий и под ним диагонально пусто - он может скатиться
-    for (int y = 0; y < world->params.height_blocks - 1; y++) {
+    for (int y = world->params.height_blocks - 1; y > 0; y--) {
         for (int x = 0; x < world->params.width_blocks; x++) {
             Block* block = &world->blocks[y][x];
             
@@ -99,14 +100,14 @@ void logic_update_sliding_blocks(WorldState* world) {
                 continue;
             }
             
-            Block* block_below = &world->blocks[y + 1][x];
+            Block* block_below = &world->blocks[y - 1][x];
             
             // Если блок стоит на твёрдом, проверяем возможность скольжения
             if (is_block_solid(block_below->type)) {
                 // Проверяем соседей слева и справа на предмет возможности скатиться
                 if (x > 0) {
                     Block* block_left = &world->blocks[y][x - 1];
-                    Block* block_below_left = &world->blocks[y + 1][x - 1];
+                    Block* block_below_left = &world->blocks[y - 1][x - 1];
                     
                     if (block_left->type == BLOCK_AIR && block_below_left->type == BLOCK_AIR) {
                         block->fall_timer += 0.016f;
@@ -131,7 +132,7 @@ void logic_update_sliding_blocks(WorldState* world) {
                 
                 if (x < world->params.width_blocks - 1) {
                     Block* block_right = &world->blocks[y][x + 1];
-                    Block* block_below_right = &world->blocks[y + 1][x + 1];
+                    Block* block_below_right = &world->blocks[y - 1][x + 1];
                     
                     if (block_right->type == BLOCK_AIR && block_below_right->type == BLOCK_AIR) {
                         block->fall_timer += 0.016f;
