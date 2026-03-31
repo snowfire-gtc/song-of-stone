@@ -8,10 +8,12 @@
 void gen_init_noise(uint32_t seed);
 
 // Генерация мира по умолчанию (плоский)
-WorldState gen_world_default(void);
+// Возвращает указатель на статическую структуру WorldState
+WorldState* gen_world_default(void);
 
 // Генерация процедурного мира с использованием шума Перлина
-WorldState gen_world_procedural(uint32_t seed, int width, int height);
+// Возвращает указатель на статическую структуру WorldState
+WorldState* gen_world_procedural(uint32_t seed, int width, int height);
 
 // Генерация блока почвы с травой (внутренняя функция)
 void gen_dirt_with_grass_internal(Block* block, int x, int y);
