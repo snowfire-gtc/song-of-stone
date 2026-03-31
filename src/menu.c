@@ -142,23 +142,23 @@ void menu_render_main(Menu* menu, WorldState* world) {
     
     menu_draw_header("SONG OF STONE", (Vector2){start_x + 50, start_y - 80});
     
-    if (menu_draw_button("Играть одиночно", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Play Singleplayer", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
         // Запуск одиночной игры
         g_game_state = GAME_STATE_PLAYING;
         menu->visible = false;
     }
     
-    if (menu_draw_button("Сетевая игра", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Multiplayer", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
         menu->previous_state = MENU_STATE_MAIN;
         menu->state = MENU_STATE_NETWORK;
     }
     
-    if (menu_draw_button("Настройки", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Settings", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
         menu->previous_state = MENU_STATE_MAIN;
         menu->state = MENU_STATE_SETTINGS;
     }
     
-    if (menu_draw_button("Выход", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Exit", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
         g_game_state = GAME_STATE_EXIT;
     }
 }
@@ -171,28 +171,28 @@ void menu_render_network(Menu* menu, WorldState* world) {
     float start_x = (screen_w - form_width) / 2;
     float start_y = screen_h / 2 - 150;
     
-    menu_draw_header("Сетевая игра", (Vector2){start_x + 50, start_y - 80});
+    menu_draw_header("Multiplayer", (Vector2){start_x + 50, start_y - 80});
     
     // Поле IP сервера
-    menu_draw_input_box("IP сервера:", 
+    menu_draw_input_box("Server IP:", 
                         (Rectangle){start_x, start_y, form_width, 40},
                         menu->server_ip, sizeof(menu->server_ip), false);
     
     // Поле порта
     char port_str[16];
     snprintf(port_str, sizeof(port_str), "%d", menu->server_port);
-    menu_draw_input_box("Порт:", 
+    menu_draw_input_box("Port:", 
                         (Rectangle){start_x, start_y + 60, form_width, 40},
                         port_str, sizeof(port_str), false);
     menu->server_port = atoi(port_str);
     
     // Поле имени игрока
-    menu_draw_input_box("Имя игрока:", 
+    menu_draw_input_box("Player Name:", 
                         (Rectangle){start_x, start_y + 120, form_width, 40},
                         menu->player_name, sizeof(menu->player_name), false);
     
     // Кнопки
-    if (menu_draw_button("Подключиться", (Rectangle){start_x, start_y + 180, form_width/2 - 10, 50}, false)) {
+    if (menu_draw_button("Connect", (Rectangle){start_x, start_y + 180, form_width/2 - 10, 50}, false)) {
         // Попытка подключения
         printf("Connecting to %s:%d as %s...\n", menu->server_ip, menu->server_port, menu->player_name);
         // Здесь будет вызов net_client_connect()
@@ -200,12 +200,12 @@ void menu_render_network(Menu* menu, WorldState* world) {
         menu->visible = false;
     }
     
-    if (menu_draw_button("Назад", (Rectangle){start_x + form_width/2 + 10, start_y + 180, form_width/2 - 10, 50}, false)) {
+    if (menu_draw_button("Back", (Rectangle){start_x + form_width/2 + 10, start_y + 180, form_width/2 - 10, 50}, false)) {
         menu->state = menu->previous_state;
     }
     
     // Информация
-    DrawText("Введите IP и порт сервера для подключения", start_x, start_y + 250, 16, LIGHTGRAY);
+    DrawText("Enter server IP and port to connect", start_x, start_y + 250, 16, LIGHTGRAY);
 }
 
 void menu_render_settings(Menu* menu, WorldState* world) {
@@ -217,29 +217,29 @@ void menu_render_settings(Menu* menu, WorldState* world) {
     float start_x = (screen_w - btn_width) / 2;
     float start_y = screen_h / 2 - 150;
     
-    menu_draw_header("Настройки", (Vector2){start_x + 50, start_y - 80});
+    menu_draw_header("Settings", (Vector2){start_x + 50, start_y - 80});
     
-    if (menu_draw_button("Видео", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Video", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
         menu->previous_state = MENU_STATE_SETTINGS;
         menu->state = MENU_STATE_SETTINGS_VIDEO;
     }
     
-    if (menu_draw_button("Звук", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Audio", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
         menu->previous_state = MENU_STATE_SETTINGS;
         menu->state = MENU_STATE_SETTINGS_AUDIO;
     }
     
-    if (menu_draw_button("Управление", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Controls", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
         menu->previous_state = MENU_STATE_SETTINGS;
         menu->state = MENU_STATE_SETTINGS_CONTROLS;
     }
     
-    if (menu_draw_button("Внешность", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Appearance", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
         menu->previous_state = MENU_STATE_SETTINGS;
         menu->state = MENU_STATE_SETTINGS_APPEARANCE;
     }
     
-    if (menu_draw_button("Назад", (Rectangle){start_x, start_y + 240, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Back", (Rectangle){start_x, start_y + 240, btn_width, btn_height}, false)) {
         menu->state = menu->previous_state;
     }
 }
@@ -252,19 +252,19 @@ void menu_render_settings_video(Menu* menu, WorldState* world) {
     float start_x = (screen_w - slider_width) / 2;
     float start_y = screen_h / 2 - 150;
     
-    menu_draw_header("Настройки видео", (Vector2){start_x + 50, start_y - 80});
+    menu_draw_header("Video Settings", (Vector2){start_x + 50, start_y - 80});
     
     // Пример настроек (нужно интегрировать с Settings struct)
     static float render_scale = 1.0f;
-    render_scale = menu_draw_slider("Масштаб рендера", 
+    render_scale = menu_draw_slider("Render Scale", 
                                     (Rectangle){start_x, start_y, slider_width, 30},
                                     render_scale, 0.5f, 2.0f);
     
     // static int fps_limit = 60; // unused
     // Упрощённый слайдер для FPS
-    DrawText("Лимит FPS: 60", start_x, start_y + 50, 20, MENU_TEXT_COLOR);
+    DrawText("FPS Limit: 60", start_x, start_y + 50, 20, MENU_TEXT_COLOR);
     
-    if (menu_draw_button("Назад", (Rectangle){start_x, start_y + 200, 150, 50}, false)) {
+    if (menu_draw_button("Back", (Rectangle){start_x, start_y + 200, 150, 50}, false)) {
         menu->state = menu->previous_state;
     }
 }
@@ -277,28 +277,28 @@ void menu_render_settings_audio(Menu* menu, WorldState* world) {
     float start_x = (screen_w - slider_width) / 2;
     float start_y = screen_h / 2 - 150;
     
-    menu_draw_header("Настройки звука", (Vector2){start_x + 50, start_y - 80});
+    menu_draw_header("Audio Settings", (Vector2){start_x + 50, start_y - 80});
     
     static float master_vol = 1.0f;
     static float sfx_vol = 1.0f;
     static float music_vol = 0.8f;
     
-    master_vol = menu_draw_slider("Общая громкость", 
+    master_vol = menu_draw_slider("Master Volume", 
                                   (Rectangle){start_x, start_y, slider_width, 30},
                                   master_vol, 0.0f, 1.0f);
     
-    sfx_vol = menu_draw_slider("Звуковые эффекты", 
+    sfx_vol = menu_draw_slider("Sound Effects", 
                                (Rectangle){start_x, start_y + 60, slider_width, 30},
                                sfx_vol, 0.0f, 1.0f);
     
-    music_vol = menu_draw_slider("Музыка", 
+    music_vol = menu_draw_slider("Music", 
                                  (Rectangle){start_x, start_y + 120, slider_width, 30},
                                  music_vol, 0.0f, 1.0f);
     
     // Применение громкости
     // SetMasterVolume(master_vol); и т.д.
     
-    if (menu_draw_button("Назад", (Rectangle){start_x, start_y + 200, 150, 50}, false)) {
+    if (menu_draw_button("Back", (Rectangle){start_x, start_y + 200, 150, 50}, false)) {
         menu->state = menu->previous_state;
     }
 }
@@ -307,17 +307,17 @@ void menu_render_settings_controls(Menu* menu, WorldState* world) {
     int screen_w = GetScreenWidth();
     int screen_h = GetScreenHeight();
     
-    menu_draw_header("Управление", (Vector2){100, 100});
+    menu_draw_header("Controls", (Vector2){100, 100});
     
-    DrawText("WASD - Движение", 100, 150, 20, MENU_TEXT_COLOR);
-    DrawText("Пробел - Прыжок", 100, 180, 20, MENU_TEXT_COLOR);
-    DrawText("ЛКМ - Атака/Копать", 100, 210, 20, MENU_TEXT_COLOR);
-    DrawText("ПКМ - Строить", 100, 240, 20, MENU_TEXT_COLOR);
-    DrawText("E - Использовать предмет", 100, 270, 20, MENU_TEXT_COLOR);
-    DrawText("Tab - Инвентарь", 100, 300, 20, MENU_TEXT_COLOR);
-    DrawText("Esc - Меню/Пауза", 100, 330, 20, MENU_TEXT_COLOR);
+    DrawText("WASD - Movement", 100, 150, 20, MENU_TEXT_COLOR);
+    DrawText("Space - Jump", 100, 180, 20, MENU_TEXT_COLOR);
+    DrawText("LMB - Attack/Mine", 100, 210, 20, MENU_TEXT_COLOR);
+    DrawText("RMB - Build", 100, 240, 20, MENU_TEXT_COLOR);
+    DrawText("E - Use Item", 100, 270, 20, MENU_TEXT_COLOR);
+    DrawText("Tab - Inventory", 100, 300, 20, MENU_TEXT_COLOR);
+    DrawText("Esc - Menu/Pause", 100, 330, 20, MENU_TEXT_COLOR);
     
-    if (menu_draw_button("Назад", (Rectangle){100, 400, 150, 50}, false)) {
+    if (menu_draw_button("Back", (Rectangle){100, 400, 150, 50}, false)) {
         menu->state = menu->previous_state;
     }
 }
@@ -326,21 +326,21 @@ void menu_render_settings_appearance(Menu* menu, WorldState* world) {
     int screen_w = GetScreenWidth();
     int screen_h = GetScreenHeight();
     
-    menu_draw_header("Внешность персонажа", (Vector2){100, 100});
+    menu_draw_header("Character Appearance", (Vector2){100, 100});
     
     // Превью персонажа
     DrawRectangle(400, 150, 100, 150, BROWN); // Тело
     DrawCircle(450, 120, 30, PINK); // Голова
     
-    DrawText("Цвет кожи: Розовый", 100, 350, 20, MENU_TEXT_COLOR);
-    DrawText("Цвет волос: Коричневый", 100, 380, 20, MENU_TEXT_COLOR);
-    DrawText("Одежда: Синяя рубашка", 100, 410, 20, MENU_TEXT_COLOR);
+    DrawText("Skin Color: Pink", 100, 350, 20, MENU_TEXT_COLOR);
+    DrawText("Hair Color: Brown", 100, 380, 20, MENU_TEXT_COLOR);
+    DrawText("Clothing: Blue Shirt", 100, 410, 20, MENU_TEXT_COLOR);
     
-    if (menu_draw_button("Случайный", (Rectangle){100, 450, 150, 50}, false)) {
+    if (menu_draw_button("Random", (Rectangle){100, 450, 150, 50}, false)) {
         // Генерация случайной внешности
     }
     
-    if (menu_draw_button("Назад", (Rectangle){100, 520, 150, 50}, false)) {
+    if (menu_draw_button("Back", (Rectangle){100, 520, 150, 50}, false)) {
         menu->state = menu->previous_state;
     }
 }
@@ -354,25 +354,25 @@ void menu_render_pause(Menu* menu, WorldState* world) {
     float start_x = (screen_w - btn_width) / 2;
     float start_y = screen_h / 2 - 100;
     
-    menu_draw_header("ПАУЗА", (Vector2){start_x + 80, start_y - 80});
+    menu_draw_header("PAUSE", (Vector2){start_x + 80, start_y - 80});
     
-    if (menu_draw_button("Продолжить", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Continue", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
         menu_toggle(menu);
         g_game_state = GAME_STATE_PLAYING;
     }
     
-    if (menu_draw_button("Настройки", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Settings", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
         menu->previous_state = MENU_STATE_PAUSE;
         menu->state = MENU_STATE_SETTINGS;
     }
     
-    if (menu_draw_button("В главное меню", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Main Menu", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
         g_game_state = GAME_STATE_MENU;
         menu->visible = true;
         menu->state = MENU_STATE_MAIN;
     }
     
-    if (menu_draw_button("Отключиться", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
+    if (menu_draw_button("Disconnect", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
         // Отключение от сервера
         menu_toggle(menu);
         g_game_state = GAME_STATE_MENU;

@@ -104,7 +104,7 @@ void logic_update(WorldState* world, int frame_counter) {
             
             Block* block_below = logic_get_block(world, block_x, block_y - 1);
             if (block_below && block_below->type == BLOCK_AIR) {
-                ch->vy -= world->params.gravity * 0.016f;
+                ch->vy += world->params.gravity * 0.016f;
             } else {
                 // Проверка на шаг — частицы при движении
                 if ((ch->vx > 0.5f || ch->vx < -0.5f) && (frame_counter % 10 == 0)) {
@@ -172,7 +172,7 @@ void logic_update(WorldState* world, int frame_counter) {
         
         // Гравитация для предметов
         item->y += (int)(item->vy * 0.016f);
-        item->vy -= world->params.gravity * 0.016f;
+        item->vy += world->params.gravity * 0.016f;
         
         if (item->y < 0) {
             item->y = 0;
@@ -234,7 +234,7 @@ void logic_update_server(GameServer* server, WorldState* world, double dt) {
         ch->vx *= CHARACTER_FRICTION;
         
         // Гравитация
-        ch->vy -= world->params.gravity * dt;
+        ch->vy += world->params.gravity * dt;
         
         // Ограничение скорости
         float max_speed = CHARACTER_MAX_SPEED;
