@@ -77,7 +77,7 @@ int main(void) {
     memset(&g_client, 0, sizeof(GameClient));
     g_is_singleplayer_with_server = false;
 
-    // Инициализация камеры
+    // Инициализация камеры - будет обновлена после спавна игрока
     g_camera.target = (Vector2){world->throne_blue.x, world->throne_blue.y};
     g_camera.offset = (Vector2){GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
     g_camera.rotation = 0.0f;
@@ -85,7 +85,6 @@ int main(void) {
 
     int frame_counter = 0;
     bool debug_console_open = false;
-    Character* ch = &world->characters[0];
     
     double dt = 0.0;
     double last_time = GetTime();
