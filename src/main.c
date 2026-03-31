@@ -52,17 +52,17 @@ int main(void) {
     particles_init(&g_particles);
     menu_init(&g_menu);
 
-    WorldState world = gen_world_default();
+    WorldState* world = gen_world_default();
     
     // Начальное состояние - меню
     GameState game_state = GAME_STATE_MENU;
     bool is_networked = false;
     int local_player_id = 0;
-    world.local_player_id = local_player_id;
+    world->local_player_id = local_player_id;
 
     int frame_counter = 0;
     bool debug_console_open = false;
-    Character* ch = &world.characters[0];
+    Character* ch = &world->characters[0];
     
     double dt = 0.0;
     double last_time = GetTime();
@@ -85,8 +85,8 @@ int main(void) {
         // Обработка состояний игры
         switch (game_state) {
             case GAME_STATE_MENU:
-                menu_update(&g_menu, &world, dt);
-                menu_handle_input(&g_menu, &world);
+                menu_update(&g_menu, world, dt);
+                menu_handle_input(&g_menu, world);
                 
                 // Если меню скрыто - переходим к игре
                 if (!g_menu.visible) {
@@ -104,23 +104,23 @@ int main(void) {
                 
                 // Обновление логики игры
                 if (ch->type == CHAR_WORKER) {
-                    logic_worker_update(ch, &world, frame_counter);
+                    logic_worker_update(ch, world, frame_counter);
                     if (IsKeyPressed(KEY_E)) {
                         int bx = ch->x / 16, by = ch->y / 16;
-                        logic_worker_dig_block(ch, &world, bx, by);
+                        logic_worker_dig_block(ch, world, bx, by);
                     }
                 }
                 
-                logic_update(&world, frame_counter);
-                logic_bomb_update_all(&world, frame_counter);
-                logic_arrow_update_all(&world, frame_counter);
-                debug_console_update(&world);
+                logic_update(world, frame_counter);
+                logic_bomb_update_all(world, frame_counter);
+                logic_arrow_update_all(world, frame_counter);
+                debug_console_update(world);
                 particles_update(&g_particles, dt);
                 break;
                 
             case GAME_STATE_PAUSED:
-                menu_update(&g_menu, &world, dt);
-                menu_handle_input(&g_menu, &world);
+                menu_update(&g_menu, world, dt);
+                menu_handle_input(&g_menu, world);
                 
                 // Если меню паузы скрыто - возвращаемся к игре
                 if (!g_menu.visible && g_menu.state == MENU_STATE_PAUSE) {
@@ -150,25 +150,25 @@ int main(void) {
         
         // Отрисовка игрового мира (кроме меню)
         if (game_state != GAME_STATE_MENU) {
-            draw_background(&world);
-            draw_blocks(&world);
-            draw_dropped_items(&world);
-            draw_warrior_all(&world, frame_counter, world.local_player_id);
-            draw_archer_all(&world, frame_counter, world.local_player_id);
-            draw_worker_all(&world, frame_counter, world.local_player_id);
-            draw_bomb_all(&world, frame_counter);
-            draw_arrow_all(&world, frame_counter);
-            draw_ui(&world);
+            draw_background(world);
+            draw_blocks(world);
+            draw_dropped_items(world);
+            draw_warrior_all(world, frame_counter, world->local_player_id);
+            draw_archer_all(world, frame_counter, world->local_player_id);
+            draw_worker_all(world, frame_counter, world->local_player_id);
+            draw_bomb_all(world, frame_counter);
+            draw_arrow_all(world, frame_counter);
+            draw_ui(world);
             particles_draw(&g_particles);
             
-            draw_debug_vectors(&world);
+            draw_debug_vectors(world);
             if (debug_console_open) {
                 draw_debug_console();
             }
         }
         
         // Отрисовка меню поверх всего
-        menu_render(&g_menu, &world);
+        menu_render(&g_menu, world);
 
         EndDrawing();
 

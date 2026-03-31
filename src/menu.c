@@ -100,8 +100,8 @@ void menu_draw_input_box(const char* label, Rectangle bounds, char* buffer, int 
     
     DrawText(buffer, bounds.x + 5, bounds.y + 5, 20, MENU_TEXT_COLOR);
     
-    // Курсор
-    if (active && ((GetFrameCount() / 30) % 2 == 0)) {
+    // Курсор - мигание каждые 0.5 секунды
+    if (active && (((int)(GetTime() * 2)) % 2 == 0)) {
         int text_width = MeasureText(buffer, 20);
         DrawLine(bounds.x + 5 + text_width, bounds.y + 5,
                  bounds.x + 5 + text_width, bounds.y + 25, WHITE);

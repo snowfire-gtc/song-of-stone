@@ -6,6 +6,9 @@
 #include <string.h>
 #include <math.h>
 
+// Статическая структура мира для избежания переполнения стека
+static WorldState g_world;
+
 void gen_dirt_with_grass_internal(Block* block, int x, int y);
 
 // Инициализация генератора шума
@@ -14,39 +17,38 @@ void gen_init_noise(uint32_t seed) {
 }
 
 // Генерация процедурного мира
-WorldState gen_world_procedural(uint32_t seed, int width, int height) {
-    WorldState world;
-    memset(&world, 0, sizeof(WorldState));
+WorldState* gen_world_procedural(uint32_t seed, int width, int height) {
+    memset(&g_world, 0, sizeof(WorldState));
     
     // Инициализация шума
     gen_init_noise(seed);
     
     // Параметры мира
-    world.params.width_blocks = width;
-    world.params.height_blocks = height;
-    world.params.gravity = 9.8f;
-    world.params.max_speed = 200.0f;
-    world.params.friction = 0.85f;
-    world.params.bomb_fuse_time_seconds = 3;
-    world.params.respawn_time_per_block = 0.5f;
-    world.params.dropped_coin_ratio = 0.5f;
-    world.params.flag_capture_share = 0.2f;
+    g_world.params.width_blocks = width;
+    g_world.params.height_blocks = height;
+    g_world.params.gravity = 9.8f;
+    g_world.params.max_speed = 200.0f;
+    g_world.params.friction = 0.85f;
+    g_world.params.bomb_fuse_time_seconds = 3;
+    g_world.params.respawn_time_per_block = 0.5f;
+    g_world.params.dropped_coin_ratio = 0.5f;
+    g_world.params.flag_capture_share = 0.2f;
     
     // Стоимость построек
-    world.params.build_costs.spikes_wood = 20;
-    world.params.build_costs.bridge_wood = 20;
-    world.params.build_costs.ladder_wood = 10;
-    world.params.build_costs.door_wood = 20;
-    world.params.build_costs.arrows_per_10_coins = 10;
-    world.params.build_costs.bombs_per_20_coins = 1;
+    g_world.params.build_costs.spikes_wood = 20;
+    g_world.params.build_costs.bridge_wood = 20;
+    g_world.params.build_costs.ladder_wood = 10;
+    g_world.params.build_costs.door_wood = 20;
+    g_world.params.build_costs.arrows_per_10_coins = 10;
+    g_world.params.build_costs.bombs_per_20_coins = 1;
     
-    world.params.blue_score = 0;
-    world.params.red_score = 0;
+    g_world.params.blue_score = 0;
+    g_world.params.red_score = 0;
     
     // Физика блоков
-    world.params.enable_falling_blocks = true;
-    world.params.enable_sliding_blocks = true;
-    world.params.block_fall_delay = 0.1f;
+    g_world.params.enable_falling_blocks = true;
+    g_world.params.enable_sliding_blocks = true;
+    g_world.params.block_fall_delay = 0.1f;
     
     // Определение уровня поверхности с помощью шума Перлина
     int base_height = height / 2;
@@ -69,7 +71,7 @@ WorldState gen_world_procedural(uint32_t seed, int width, int height) {
         
         // Генерация колонки блоков
         for (int y = 0; y < height; y++) {
-            Block* block = &world.blocks[y][x];
+            Block* block = &g_world.blocks[y][x];
             block->x = x;
             block->y = y;
             
@@ -111,7 +113,7 @@ WorldState gen_world_procedural(uint32_t seed, int width, int height) {
                 // Генерация деревьев на поверхности
                 if (rand() % 8 == 0 && x > 15 && x < width - 15) {
                     int tree_height = 4 + rand() % 6;
-                    gen_tree(&world, x, y, tree_height);
+                    gen_tree(&g_world, x, y, tree_height);
                 }
             } else {
                 // Воздух выше поверхности
@@ -131,8 +133,8 @@ WorldState gen_world_procedural(uint32_t seed, int width, int height) {
         // Если поверхность ниже уровня воды, заполняем водой
         if (surface_y > water_level) {
             for (int y = water_level; y < surface_y && y < height; y++) {
-                if (world.blocks[y][x].type == BLOCK_AIR) {
-                    world.blocks[y][x].type = BLOCK_WATER;
+                if (g_world.blocks[y][x].type == BLOCK_AIR) {
+                    g_world.blocks[y][x].type = BLOCK_WATER;
                 }
             }
         }
@@ -148,26 +150,26 @@ WorldState gen_world_procedural(uint32_t seed, int width, int height) {
             // Заменяем несколько блоков земли на песок
             for (int dy = 0; dy < 3 && surface_y - dy >= 0; dy++) {
                 int y = surface_y - dy;
-                if (world.blocks[y][x].type == BLOCK_DIRT) {
-                    world.blocks[y][x].type = BLOCK_SAND;
-                    world.blocks[y][x].has_grass = false;
+                if (g_world.blocks[y][x].type == BLOCK_DIRT) {
+                    g_world.blocks[y][x].type = BLOCK_SAND;
+                    g_world.blocks[y][x].has_grass = false;
                 }
             }
         }
     }
     
     // Троны и флаги
-    gen_thrones_and_flags(&world);
+    gen_thrones_and_flags(&g_world);
     
-    world.char_count = 0;
-    world.item_count = 0;
-    world.bomb_count = 0;
-    world.game_over = false;
-    world.winner = TEAM_NONE;
-    world.is_multiplayer = false;
-    world.local_player_id = 0;
+    g_world.char_count = 0;
+    g_world.item_count = 0;
+    g_world.bomb_count = 0;
+    g_world.game_over = false;
+    g_world.winner = TEAM_NONE;
+    g_world.is_multiplayer = false;
+    g_world.local_player_id = 0;
     
-    return world;
+    return &g_world;
 }
 
 void gen_tree(WorldState* world, int base_x, int base_y, int height) {
@@ -238,43 +240,42 @@ void gen_thrones_and_flags(WorldState* world) {
     world->flag_carrier_id = -1;
 }
 
-WorldState gen_world_default(void) {
-    WorldState world;
-    memset(&world, 0, sizeof(WorldState));
+WorldState* gen_world_default(void) {
+    memset(&g_world, 0, sizeof(WorldState));
     
     // Параметры мира по умолчанию
-    world.params.width_blocks = 256;
-    world.params.height_blocks = 64;
-    world.params.gravity = 9.8f;
-    world.params.max_speed = 200.0f;
-    world.params.friction = 0.85f;
-    world.params.bomb_fuse_time_seconds = 3;
-    world.params.respawn_time_per_block = 0.5f;
-    world.params.dropped_coin_ratio = 0.5f;
-    world.params.flag_capture_share = 0.2f;
+    g_world.params.width_blocks = 256;
+    g_world.params.height_blocks = 64;
+    g_world.params.gravity = 9.8f;
+    g_world.params.max_speed = 200.0f;
+    g_world.params.friction = 0.85f;
+    g_world.params.bomb_fuse_time_seconds = 3;
+    g_world.params.respawn_time_per_block = 0.5f;
+    g_world.params.dropped_coin_ratio = 0.5f;
+    g_world.params.flag_capture_share = 0.2f;
     
     // Стоимость построек
-    world.params.build_costs.spikes_wood = 20;
-    world.params.build_costs.bridge_wood = 20;
-    world.params.build_costs.ladder_wood = 10;
-    world.params.build_costs.door_wood = 20;
-    world.params.build_costs.arrows_per_10_coins = 10;
-    world.params.build_costs.bombs_per_20_coins = 1;
+    g_world.params.build_costs.spikes_wood = 20;
+    g_world.params.build_costs.bridge_wood = 20;
+    g_world.params.build_costs.ladder_wood = 10;
+    g_world.params.build_costs.door_wood = 20;
+    g_world.params.build_costs.arrows_per_10_coins = 10;
+    g_world.params.build_costs.bombs_per_20_coins = 1;
     
-    world.params.blue_score = 0;
-    world.params.red_score = 0;
+    g_world.params.blue_score = 0;
+    g_world.params.red_score = 0;
     
     // Физика блоков
-    world.params.enable_falling_blocks = true;
-    world.params.enable_sliding_blocks = true;
-    world.params.block_fall_delay = 0.1f; // 100 мс задержка перед падением
+    g_world.params.enable_falling_blocks = true;
+    g_world.params.enable_sliding_blocks = true;
+    g_world.params.block_fall_delay = 0.1f; // 100 мс задержка перед падением
     
     srand((unsigned int)time(NULL));
     
     // Генерация блоков
-    for (int y = 0; y < world.params.height_blocks; y++) {
-        for (int x = 0; x < world.params.width_blocks; x++) {
-            Block* block = &world.blocks[y][x];
+    for (int y = 0; y < g_world.params.height_blocks; y++) {
+        for (int x = 0; x < g_world.params.width_blocks; x++) {
+            Block* block = &g_world.blocks[y][x];
             block->x = x;
             block->y = y;
             
@@ -299,7 +300,7 @@ WorldState gen_world_default(void) {
                 // Редкие деревья
                 if (y == 30 && rand() % 50 == 0) {
                     int tree_height = 3 + rand() % 8;
-                    gen_tree(&world, x, y, tree_height);
+                    gen_tree(&g_world, x, y, tree_height);
                 }
             }
             // Верхние слои - воздух
@@ -311,20 +312,20 @@ WorldState gen_world_default(void) {
     }
     
     // Заполнение водой нижних уровней
-    gen_water_fill(&world, 5);
+    gen_water_fill(&g_world, 5);
     
     // Троны и флаги
-    gen_thrones_and_flags(&world);
+    gen_thrones_and_flags(&g_world);
     
-    world.char_count = 0;
-    world.item_count = 0;
-    world.bomb_count = 0;
-    world.game_over = false;
-    world.winner = TEAM_NONE;
-    world.is_multiplayer = false;
-    world.local_player_id = 0;
+    g_world.char_count = 0;
+    g_world.item_count = 0;
+    g_world.bomb_count = 0;
+    g_world.game_over = false;
+    g_world.winner = TEAM_NONE;
+    g_world.is_multiplayer = false;
+    g_world.local_player_id = 0;
     
-    return world;
+    return &g_world;
 }
 
 void gen_dirt_with_grass_internal(Block* block, int x, int y) {
