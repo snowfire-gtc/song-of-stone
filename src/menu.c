@@ -121,12 +121,30 @@ void menu_update(Menu* menu, WorldState* world, double dt) {
         if (menu->scale > 1.0f) menu->scale = 1.0f;
     }
     
-    // Обработка клавиатуры
+    // Обработка клавиатуры - Escape работает как кнопка Back
     if (IsKeyPressed(KEY_ESCAPE)) {
-        if (menu->state != MENU_STATE_MAIN) {
-            menu->state = menu->previous_state;
-        } else {
-            menu_toggle(menu);
+        switch (menu->state) {
+            case MENU_STATE_MAIN:
+                // В главном меню Esc закрывает меню
+                menu_toggle(menu);
+                break;
+            case MENU_STATE_NETWORK:
+            case MENU_STATE_SETTINGS:
+            case MENU_STATE_PAUSE:
+                // Из этих состояний возвращаемся в предыдущее
+                menu->state = menu->previous_state;
+                break;
+            case MENU_STATE_SETTINGS_VIDEO:
+            case MENU_STATE_SETTINGS_AUDIO:
+            case MENU_STATE_SETTINGS_CONTROLS:
+            case MENU_STATE_SETTINGS_APPEARANCE:
+                // Из подменю настроек возвращаемся в Settings
+                menu->state = MENU_STATE_SETTINGS;
+                break;
+            default:
+                // Для любых других состояний используем previous_state
+                menu->state = menu->previous_state;
+                break;
         }
     }
 }
@@ -143,7 +161,24 @@ void menu_render_main(Menu* menu, WorldState* world) {
     menu_draw_header("SONG OF STONE", (Vector2){start_x + 50, start_y - 80});
     
     if (menu_draw_button("Play Singleplayer", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
-        // Запуск одиночной игры
+        // Запуск одиночной игры - создаём персонажа игрока
+        world->char_count = 1;
+        Character* player = &world->characters[0];
+        memset(player, 0, sizeof(Character));
+        
+        // Позиция спавна у синего трона
+        player->x = (int)world->throne_blue.x;
+        player->y = (int)world->throne_blue.y + 32;
+        player->type = CHAR_WORKER;
+        player->team = TEAM_BLUE;
+        player->hp = PLAYER_MAX_HP;
+        player->oxygen = PLAYER_OXYGEN_MAX;
+        player->player_id = 0;
+        player->anim_state = ANIM_IDLE;
+        strcpy(player->name, "Player");
+        
+        world->local_player_id = 0;
+        
         g_game_state = GAME_STATE_PLAYING;
         menu->visible = false;
     }
@@ -240,7 +275,12 @@ void menu_render_settings(Menu* menu, WorldState* world) {
     }
     
     if (menu_draw_button("Back", (Rectangle){start_x, start_y + 240, btn_width, btn_height}, false)) {
-        menu->state = menu->previous_state;
+        MenuState prev = menu->previous_state;
+        // Если previous_state указывает на само Settings, идем в главное меню
+        if (prev == MENU_STATE_SETTINGS) {
+            prev = MENU_STATE_MAIN;
+        }
+        menu->state = prev;
     }
 }
 
