@@ -28,6 +28,9 @@ Menu g_menu;
 Settings g_settings;
 GameState g_game_state = GAME_STATE_MENU;  // Глобальное состояние игры для доступа из меню
 
+// Глобальная камера для слежения за игроком
+Camera2D g_camera = {0};
+
 int main(void) {
     const int WIN_W = 1280;
     const int WIN_H = 720;
@@ -59,6 +62,12 @@ int main(void) {
     bool is_networked = false;
     int local_player_id = 0;
     world->local_player_id = local_player_id;
+
+    // Инициализация камеры
+    g_camera.target = (Vector2){world->throne_blue.x, world->throne_blue.y};
+    g_camera.offset = (Vector2){GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
+    g_camera.rotation = 0.0f;
+    g_camera.zoom = 1.0f;
 
     int frame_counter = 0;
     bool debug_console_open = false;
@@ -100,6 +109,13 @@ int main(void) {
                     game_state = GAME_STATE_PAUSED;
                     g_menu.visible = true;
                     g_menu.state = MENU_STATE_PAUSE;
+                }
+                
+                // Обновление камеры - слежение за игроком
+                if (world->char_count > 0) {
+                    Character* player = &world->characters[world->local_player_id];
+                    g_camera.target.x = player->x + 8;  // центр персонажа
+                    g_camera.target.y = player->y + 16;
                 }
                 
                 // Обновление логики игры
@@ -150,6 +166,9 @@ int main(void) {
         
         // Отрисовка игрового мира (кроме меню)
         if (game_state != GAME_STATE_MENU) {
+            // Используем камеру для отрисовки мира
+            BeginMode2D(g_camera);
+            
             draw_background(world);
             draw_blocks(world);
             draw_dropped_items(world);
@@ -158,10 +177,15 @@ int main(void) {
             draw_worker_all(world, frame_counter, world->local_player_id);
             draw_bomb_all(world, frame_counter);
             draw_arrow_all(world, frame_counter);
-            draw_ui(world);
             particles_draw(&g_particles);
             
             draw_debug_vectors(world);
+            
+            EndMode2D();
+            
+            // UI рисуется без камеры (в экранных координатах)
+            draw_ui(world);
+            
             if (debug_console_open) {
                 draw_debug_console();
             }
