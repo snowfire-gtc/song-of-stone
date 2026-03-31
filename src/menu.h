@@ -5,6 +5,9 @@
 #include "common_game.h"
 #include "settings.h"
 
+// Объявление глобальной камеры из main.c
+extern Camera2D g_camera;
+
 // Состояния меню
 typedef enum {
     MENU_STATE_MAIN,

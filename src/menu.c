@@ -187,6 +187,10 @@ void menu_render_main(Menu* menu, WorldState* world) {
         world->local_player_id = 0;
         world->is_multiplayer = 0; // Одиночная игра
         
+        // Обновление камеры для слежения за игроком сразу после спавна
+        g_camera.target.x = player->x + 8;  // центр персонажа
+        g_camera.target.y = player->y + 16;
+        
         // Инициализация локального сервера
         if (local_server_init(&g_local_server, world, LOCAL_PORT)) {
             printf("Локальный сервер успешно инициализирован\n");
