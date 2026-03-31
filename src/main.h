@@ -14,4 +14,9 @@ extern LocalServer g_local_server;
 extern GameClient g_client;
 extern int g_is_singleplayer_with_server;
 
+// Глобальная камера
+extern Camera2D g_camera;
+extern bool g_camera_free_mode;
+extern Vector2 g_camera_free_position;
+
 #endif // MAIN_H
