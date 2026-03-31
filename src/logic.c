@@ -199,3 +199,130 @@ void logic_set_block(WorldState* world, int x, int y, BlockType type) {
         world->blocks[y][x].has_grass = false;
     }
 }
+
+// Серверная логика обновления (только для dedicated server)
+#ifdef DEDICATED_SERVER
+void logic_update_server(GameServer* server, WorldState* world, double dt) {
+    if (!server || !world) return;
+    
+    // Обновление времени
+    server->game_time += dt;
+    
+    // Обработка ввода от клиентов и обновление персонажей
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (!server->clients[i].connected) continue;
+        
+        Character* ch = &server->characters[i];
+        if (!ch->active) continue;
+        
+        // Применение ввода к персонажу
+        if (ch->input_jump && ch->on_ground) {
+            ch->vy = CHARACTER_JUMP_STRENGTH;
+            ch->on_ground = false;
+        }
+        
+        if (ch->input_left) {
+            ch->vx -= CHARACTER_ACCELERATION;
+            ch->facing_right = false;
+        }
+        if (ch->input_right) {
+            ch->vx += CHARACTER_ACCELERATION;
+            ch->facing_right = true;
+        }
+        
+        // Трение
+        ch->vx *= CHARACTER_FRICTION;
+        
+        // Гравитация
+        ch->vy -= world->params.gravity * dt;
+        
+        // Ограничение скорости
+        float max_speed = CHARACTER_MAX_SPEED;
+        if (ch->vx > max_speed) ch->vx = max_speed;
+        if (ch->vx < -max_speed) ch->vx = -max_speed;
+        if (ch->vy > CHARACTER_MAX_FALL_SPEED) ch->vy = CHARACTER_MAX_FALL_SPEED;
+        
+        // Предварительное перемещение по X
+        int new_x = ch->x + (int)(ch->vx * dt * 60);
+        
+        // Проверка коллизий по X
+        int left = new_x / BLOCK_SIZE;
+        int right = (new_x + CHARACTER_WIDTH - 1) / BLOCK_SIZE;
+        int top = ch->y / BLOCK_SIZE;
+        int bottom = (ch->y + CHARACTER_HEIGHT - 1) / BLOCK_SIZE;
+        
+        bool collision_x = false;
+        for (int by = top; by <= bottom && !collision_x; by++) {
+            for (int bx = left; bx <= right && !collision_x; bx++) {
+                if (bx >= 0 && bx < WORLD_WIDTH && by >= 0 && by < WORLD_HEIGHT) {
+                    BlockType block = world->blocks[by][bx].type;
+                    if (is_block_solid(block)) {
+                        collision_x = true;
+                    }
+                }
+            }
+        }
+        
+        if (!collision_x) {
+            ch->x = new_x;
+        } else {
+            ch->vx = 0;
+        }
+        
+        // Предварительное перемещение по Y
+        int new_y = ch->y + (int)(ch->vy * dt * 60);
+        ch->on_ground = false;
+        
+        // Проверка коллизий по Y
+        left = ch->x / BLOCK_SIZE;
+        right = (ch->x + CHARACTER_WIDTH - 1) / BLOCK_SIZE;
+        top = new_y / BLOCK_SIZE;
+        bottom = (new_y + CHARACTER_HEIGHT - 1) / BLOCK_SIZE;
+        
+        bool collision_y = false;
+        for (int by = top; by <= bottom && !collision_y; by++) {
+            for (int bx = left; bx <= right && !collision_y; bx++) {
+                if (bx >= 0 && bx < WORLD_WIDTH && by >= 0 && by < WORLD_HEIGHT) {
+                    BlockType block = world->blocks[by][bx].type;
+                    if (is_block_solid(block)) {
+                        collision_y = true;
+                        
+                        // Если падали вниз и столкнулись - на земле
+                        if (ch->vy < 0 && new_y < ch->y) {
+                            ch->on_ground = true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!collision_y) {
+            ch->y = new_y;
+        } else {
+            if (ch->vy < 0) {
+                ch->vy = 0;
+            }
+        }
+        
+        // Ограничение границами мира
+        if (ch->x < 0) ch->x = 0;
+        if (ch->x > WORLD_WIDTH * BLOCK_SIZE - CHARACTER_WIDTH) {
+            ch->x = WORLD_WIDTH * BLOCK_SIZE - CHARACTER_WIDTH;
+        }
+        if (ch->y < 0) {
+            ch->y = 0;
+            ch->vy = 0;
+        }
+        if (ch->y > WORLD_HEIGHT * BLOCK_SIZE - CHARACTER_HEIGHT) {
+            ch->y = WORLD_HEIGHT * BLOCK_SIZE - CHARACTER_HEIGHT;
+            ch->vy = 0;
+            ch->on_ground = true;
+        }
+        
+        // Проверка смерти (падение, удушье)
+        logic_check_character_death((WorldState*)world, ch);
+    }
+    
+    server->total_ticks++;
+}
+#endif // DEDICATED_SERVER

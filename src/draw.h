@@ -9,8 +9,8 @@
 int get_frame_counter(void);
 void increment_frame_counter(void);
 
-// Инициализация шрифтов для UI (внутренняя)
-void init_ui_font_internal(void);
+// Инициализация шрифтов для UI
+void init_ui_font(void);
 
 // Отрисовка фона (параллакс)
 void draw_background(WorldState* world);

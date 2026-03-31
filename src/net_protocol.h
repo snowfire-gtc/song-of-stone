@@ -154,3 +154,29 @@ size_t compress_block_changes(const BlockChange* changes, uint8_t count, uint8_t
 size_t decompress_block_changes(const uint8_t* input, size_t len, BlockChange* output, size_t max_count);
 
 #endif // NET_PROTOCOL_H
+
+// Типы действий (для клиент-серверного взаимодействия)
+typedef enum {
+    ACTION_DIG,
+    ACTION_BUILD,
+    ACTION_ATTACK,
+    ACTION_USE_ITEM,
+    ACTION_PLACE_BOMB,
+    ACTION_PLACE_SPIKES,
+    ACTION_PLACE_BRIDGE,
+    ACTION_PLACE_LADDER
+} ActionType;
+
+// Снапшот состояния для интерполяции
+typedef struct {
+    uint32_t tick;
+    int char_count;
+    struct {
+        int x, y;
+        float vx, vy;
+        CharacterType type;
+        Team team;
+        int hp;
+        AnimationState anim;
+    } chars[MAX_PLAYERS];
+} PacketSnapshot;

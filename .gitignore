@@ -2,8 +2,14 @@
 # Compiled and build artifacts
 *.o
 *.obj
+*.a
+*.so
+*.dll
+*.exe
 *.out
 build/
+dist/
+target/
 
 # Dependencies
 node_modules/
@@ -12,13 +18,13 @@ venv/
 __pycache__/
 .mypy_cache/
 .pytest_cache/
-target/
 .gradle/
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
+*.swo
 
 # Environment
 .env
@@ -56,4 +62,9 @@ Thumbs.db
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
 ```
