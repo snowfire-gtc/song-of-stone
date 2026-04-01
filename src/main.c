@@ -291,10 +291,12 @@ int main(void) {
         }
 
         BeginDrawing();
-        ClearBackground(RAYWHITE);
         
         // Отрисовка игрового мира (кроме меню)
         if (game_state != GAME_STATE_MENU) {
+            // Сначала рисуем фон вне камеры (чёрный для областей за пределами мира)
+            ClearBackground(BLACK);
+            
             // Используем камеру для отрисовки мира
             BeginMode2D(g_camera);
             
@@ -318,6 +320,9 @@ int main(void) {
             if (debug_console_open) {
                 draw_debug_console();
             }
+        } else {
+            // В меню тоже чёрный фон
+            ClearBackground(BLACK);
         }
         
         // Отрисовка меню поверх всего

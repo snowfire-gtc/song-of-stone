@@ -25,8 +25,25 @@ void init_ui_font_internal(void) {
 
 void draw_background(WorldState* world) {
     (void)world;
-    // Чёрный фон за пределами карты
-    DrawRectangle(0, 0, 1280, 720, BLACK);
+    // Рисуем градиентное небо на весь экран
+    int screen_width = GetScreenWidth();
+    int screen_height = GetScreenHeight();
+    
+    // Рисуем градиент от тёмно-синего (верх) к светло-голубому (низ)
+    Color sky_top = (Color){20, 30, 60, 255};      // Тёмно-синий
+    Color sky_bottom = (Color){100, 150, 200, 255}; // Светло-голубой
+    
+    // Рисуем градиент полосками
+    for (int y = 0; y < screen_height; y++) {
+        float t = (float)y / screen_height;
+        Color current_color = (Color){
+            (unsigned char)(sky_top.r + (sky_bottom.r - sky_top.r) * t),
+            (unsigned char)(sky_top.g + (sky_bottom.g - sky_top.g) * t),
+            (unsigned char)(sky_top.b + (sky_bottom.b - sky_top.b) * t),
+            255
+        };
+        DrawLine(0, y, screen_width, y, current_color);
+    }
 }
 
 void draw_blocks(WorldState* world) {
