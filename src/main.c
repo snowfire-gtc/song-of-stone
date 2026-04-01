@@ -55,6 +55,9 @@ int main(void) {
     InitWindow(g_settings.video.screen_width, g_settings.video.screen_height, "Song of Stone");
     SetTargetFPS(g_settings.video.fps_limit);
     
+    // Отключаем закрытие приложения по ESCAPE, чтобы использовать его для меню паузы
+    SetExitKey(0);
+    
     // Применение настроек звука
     settings_apply_audio(&g_settings.audio);
 
@@ -242,7 +245,7 @@ int main(void) {
                 menu_handle_input(&g_menu, world);
                 
                 // Если меню паузы скрыто - возвращаемся к игре
-                if (!g_menu.visible && g_menu.state == MENU_STATE_PAUSE) {
+                if (!g_menu.visible && (g_menu.state == MENU_STATE_PAUSE)) {
                     game_state = GAME_STATE_PLAYING;
                 }
                 break;
