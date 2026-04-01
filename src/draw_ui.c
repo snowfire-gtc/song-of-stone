@@ -1,6 +1,7 @@
 // src/draw/draw_ui.c
 #include "raylib.h"
 #include "common_game.h"
+#include "draw_ui.h"
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
@@ -8,37 +9,109 @@
 
 extern Font ui_font; // используем шрифт из draw.c
 
+// Текстуры иконок ресурсов
+static Texture2D heart_texture = {0};
+static Texture2D wood_texture = {0};
+static Texture2D bomb_texture = {0};
+static Texture2D arrow_texture_icon = {0};
+static bool ui_textures_loaded = false;
+
 void init_ui_font(void) {
     // Шрифт уже инициализирован в draw.c через init_ui_font_internal()
+}
+
+void init_ui_textures(void) {
+    heart_texture = LoadTexture("data/textures/ui/heart.png");
+    wood_texture = LoadTexture("data/textures/ui/wood.png");
+    bomb_texture = LoadTexture("data/textures/ui/bomb.png");
+    arrow_texture_icon = LoadTexture("data/textures/ui/arrow.png");
+    
+    ui_textures_loaded = (heart_texture.id != 0 && wood_texture.id != 0);
+    
+    if (!ui_textures_loaded) {
+        TraceLog(LOG_WARNING, "UI textures not fully loaded. Using text fallback.");
+    }
+}
+
+void unload_ui_textures(void) {
+    if (heart_texture.id != 0) UnloadTexture(heart_texture);
+    if (wood_texture.id != 0) UnloadTexture(wood_texture);
+    if (bomb_texture.id != 0) UnloadTexture(bomb_texture);
+    if (arrow_texture_icon.id != 0) UnloadTexture(arrow_texture_icon);
+    ui_textures_loaded = false;
 }
 
 void draw_ui(const WorldState* world) {
     const Character* p = &world->characters[world->local_player_id];
 
-    // Жизни: 1 heart = 2 HP
-    char hearts[32] = {0};
+    // Жизни: рисуем иконки сердец
     int heart_count = (p->hp + 1) / 2;
     for (int i = 0; i < heart_count; i++) {
-        strcat(hearts, "\xE2\x99\xA5"); // U+2665 = ♥
+        if (ui_textures_loaded && heart_texture.id != 0) {
+            DrawTexture(heart_texture, 20 + i * 24, 20, WHITE);
+        } else {
+            // Fallback: текст
+            char hearts[32] = {0};
+            for (int j = 0; j < heart_count; j++) {
+                strcat(hearts, "\xE2\x99\xA5"); // U+2665 = ♥
+            }
+            DrawTextEx(ui_font, hearts, (Vector2){20, 20}, 24, 1, RED);
+            break;
+        }
     }
-    DrawTextEx(ui_font, hearts, (Vector2){20, 20}, 24, 1, RED);
 
-    // Ресурсы
-    char buf[256];
-    snprintf(buf, sizeof(buf), 
-        "\xE2\x82\xAC%d  %d\xE2\x9C\x9F  %d\xE2\x9C\xA8  %d\xF0\x9F\x8F\xB9  %d\xF0\x9F\x92\xA3",
-        p->coins, p->wood, p->stone, p->arrows, p->bombs
-    );
-    DrawTextEx(ui_font, buf, (Vector2){20, 55}, 20, 1, DARKGRAY);
+    // Ресурсы с иконками
+    int icon_y = 55;
+    int icon_size = 16;
+    int spacing = 40;
+    int start_x = 20;
+    
+    if (ui_textures_loaded) {
+        // Дерево
+        if (wood_texture.id != 0) {
+            DrawTexture(wood_texture, start_x, icon_y, WHITE);
+        }
+        char buf[32];
+        snprintf(buf, sizeof(buf), " %d", p->wood);
+        DrawTextEx(ui_font, buf, (Vector2){start_x + icon_size + 5, icon_y}, 20, 1, DARKGRAY);
+        
+        // Стрелы
+        if (arrow_texture_icon.id != 0) {
+            DrawTexture(arrow_texture_icon, start_x + spacing, icon_y, WHITE);
+        }
+        snprintf(buf, sizeof(buf), " %d", p->arrows);
+        DrawTextEx(ui_font, buf, (Vector2){start_x + spacing + icon_size + 5, icon_y}, 20, 1, DARKGRAY);
+        
+        // Бомбы
+        if (bomb_texture.id != 0) {
+            DrawTexture(bomb_texture, start_x + spacing * 2, icon_y, WHITE);
+        }
+        snprintf(buf, sizeof(buf), " %d", p->bombs);
+        DrawTextEx(ui_font, buf, (Vector2){start_x + spacing * 2 + icon_size + 5, icon_y}, 20, 1, DARKGRAY);
+        
+        // Монеты (пока без иконки, можно добавить позже)
+        snprintf(buf, sizeof(buf), "\xE2\x82\xAC%d", p->coins);
+        DrawTextEx(ui_font, buf, (Vector2){start_x + spacing * 3, icon_y}, 20, 1, GOLD);
+    } else {
+        // Fallback: текст
+        char buf[256];
+        snprintf(buf, sizeof(buf), 
+            "\xE2\x82\xAC%d  %d\xE2\x9C\x9F  %d\xE2\x9C\xA8  %d\xF0\x9F\x8F\xB9  %d\xF0\x9F\x92\xA3",
+            p->coins, p->wood, p->stone, p->arrows, p->bombs
+        );
+        DrawTextEx(ui_font, buf, (Vector2){20, 55}, 20, 1, DARKGRAY);
+    }
 
     // Кислород (только под водой)
     if (p->oxygen < PLAYER_OXYGEN_MAX) {
+        char buf[64];
         snprintf(buf, sizeof(buf), "\xF0\x9F\x92\xA7 %d", p->oxygen);
         DrawTextEx(ui_font, buf, (Vector2){20, 85}, 18, 1, BLUE);
     }
 
     // Счёт по центру сверху
     int screen_width = GetScreenWidth();
+    char buf[256];
     snprintf(buf, sizeof(buf), "BLUE: %d  |  RED: %d", 
         world->params.blue_score, world->params.red_score);
     int text_width = MeasureTextEx(ui_font, buf, 24, 1).x;
