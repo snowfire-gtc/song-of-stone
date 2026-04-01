@@ -13,6 +13,7 @@
 #include "draw_worker.h"
 #include "draw_bomb.h"
 #include "draw_arrow.h"
+#include "draw_ui.h"
 #include "sound.h"
 #include "gen.h"
 #include "debug_console.h"
@@ -59,6 +60,7 @@ int main(void) {
 
     init_sound();
     init_ui_font();
+    init_ui_textures();
     draw_warrior_init();
     draw_archer_init();
     draw_worker_init();
@@ -337,6 +339,7 @@ int main(void) {
     draw_worker_unload();
     draw_bomb_unload();
     draw_arrow_unload();
+    unload_ui_textures();
     sound_unload();
     CloseWindow();
     return 0;

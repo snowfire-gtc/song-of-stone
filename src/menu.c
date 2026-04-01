@@ -127,7 +127,7 @@ void menu_update(Menu* menu, WorldState* world, double dt) {
     if (IsKeyPressed(KEY_ESCAPE)) {
         switch (menu->state) {
             case MENU_STATE_MAIN:
-                // В главном меню Esc ничего не делает (чтобы игра не закрывалась)
+                // В главном меню Esc ничего не делает (приложение не закрывается)
                 break;
             case MENU_STATE_NETWORK:
             case MENU_STATE_SETTINGS:
