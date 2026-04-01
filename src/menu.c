@@ -432,26 +432,34 @@ void menu_render_pause(Menu* menu, WorldState* world) {
     
     menu_draw_header("PAUSE", (Vector2){start_x + 80, start_y - 80});
     
-    if (menu_draw_button("Continue", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
+    // Close & Continue - закрыть меню и продолжить игру
+    if (menu_draw_button("Close & Continue", (Rectangle){start_x, start_y, btn_width, btn_height}, false)) {
         menu_toggle(menu);
         g_game_state = GAME_STATE_PLAYING;
     }
     
+    // Settings - перейти в настройки
     if (menu_draw_button("Settings", (Rectangle){start_x, start_y + 60, btn_width, btn_height}, false)) {
         menu->previous_state = MENU_STATE_PAUSE;
         menu->state = MENU_STATE_SETTINGS;
     }
     
-    if (menu_draw_button("Main Menu", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
+    // Return to the Main Menu - отключиться от сервера и выйти в главное меню
+    if (menu_draw_button("Return to the Main Menu", (Rectangle){start_x, start_y + 120, btn_width, btn_height}, false)) {
+        // Отключение от сервера
+        if (g_is_singleplayer_with_server) {
+            local_server_shutdown(&g_local_server);
+            client_shutdown(&g_client);
+            g_is_singleplayer_with_server = false;
+        }
+        menu_toggle(menu);
         g_game_state = GAME_STATE_MENU;
-        menu->visible = true;
         menu->state = MENU_STATE_MAIN;
     }
     
-    if (menu_draw_button("Disconnect", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
-        // Отключение от сервера
-        menu_toggle(menu);
-        g_game_state = GAME_STATE_MENU;
+    // Quit to the Desktop - выйти из игры
+    if (menu_draw_button("Quit to the Desktop", (Rectangle){start_x, start_y + 180, btn_width, btn_height}, false)) {
+        g_game_state = GAME_STATE_EXIT;
     }
 }
 
