@@ -3,7 +3,7 @@
   <defs>
     <bx:grid x="0" y="0" width="20" height="20"/>
     <bx:export>
-      <bx:file format="png" width="64" height="64" path="arrow.png"/>
+      <bx:file format="png" width="32" height="32" path="arrow.png"/>
     </bx:export>
     <radialGradient gradientUnits="userSpaceOnUse" cx="246.254" cy="167.834" r="6.831" id="gradient-0" gradientTransform="matrix(10.269923, 3.127843, -1.637501, 5.376554, -2026.460774, -1528.198849)">
       <stop offset="0" style="stop-color: rgb(255, 255, 255)"/>

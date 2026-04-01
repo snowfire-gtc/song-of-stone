@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" xmlns:bx="https://boxy-svg.com">
+  <defs>
+    <bx:grid x="0" y="0" width="20" height="20"/>
+    <bx:export>
+      <bx:file format="png" width="32" height="32" path="gold.png"/>
+    </bx:export>
+  </defs>
+  <polygon style="fill: rgb(255, 241, 210); stroke: rgb(255, 236, 186);" points="82.19 319.909 100 251.384 300 300 280 380"/>
+  <polygon style="stroke: rgb(253, 242, 213); fill: rgb(255, 220, 137);" points="280 380 420 340 400 280 300 300"/>
+  <path style="fill: rgb(255, 241, 194); stroke: rgb(255, 236, 186);" d="M 229.916 240 L 400 280 L 300 300 L 100 251.411 L 229.916 240 Z"/>
+</svg>
