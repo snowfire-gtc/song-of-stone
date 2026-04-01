@@ -1,36 +1,50 @@
-```
-# Compiled and build artifacts
+```c
+# Created by https://www.gitignore.io/api/c
+
+### C ###
+# Object files
 *.o
+*.ko
 *.obj
+*.elf
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
 *.out
+*.app
+*.i*86
+*.x86_64
+*.hex
 
-# Dependencies
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
 
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
-
-# Coverage reports
-coverage/
-htmlcov/
-*.coverage
-
-# Build directories
-build/
-dist/
-target/
 ```
