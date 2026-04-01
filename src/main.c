@@ -102,11 +102,12 @@ int main(void) {
         // Ограничение dt для стабильности физики
         if (dt > 0.1) dt = 0.1;
         
-        // Обновляем глобальное состояние
-        g_game_state = game_state;
-        
+        // Обработка консоли: GRAVE открывает/закрывает, ESC закрывает если открыта
         if (IsKeyPressed(KEY_GRAVE)) {
             debug_console_open = !debug_console_open;
+        }
+        if (debug_console_open && IsKeyPressed(KEY_ESCAPE)) {
+            debug_console_open = false;
         }
         
         // Обработка состояний игры
