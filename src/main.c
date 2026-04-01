@@ -162,8 +162,12 @@ int main(void) {
                     // Свободная камера - перемещение мышкой
                     Vector2 mouse_delta = GetMouseDelta();
                     float camera_speed = 5.0f / g_camera.zoom;
+                    // Движение мыши вправо -> камера вправо (увеличиваем X)
+                    // Движение мыши влево -> камера влево (уменьшаем X)
+                    // Движение мыши вверх -> камера вверх (уменьшаем Y, т.к. Y растёт вниз)
+                    // Движение мыши вниз -> камера вниз (увеличиваем Y)
                     g_camera_free_position.x += mouse_delta.x * camera_speed;
-                    g_camera_free_position.y -= mouse_delta.y * camera_speed;
+                    g_camera_free_position.y += mouse_delta.y * camera_speed;
                     g_camera.target = g_camera_free_position;
                 } else {
                     // Слежение за игроком
