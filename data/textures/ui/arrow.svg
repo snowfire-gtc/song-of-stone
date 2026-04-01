@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" xmlns:bx="https://boxy-svg.com">
+  <defs>
+    <bx:grid x="0" y="0" width="20" height="20"/>
+    <bx:export>
+      <bx:file format="png" width="64" height="64" path="arrow.png"/>
+    </bx:export>
+    <radialGradient gradientUnits="userSpaceOnUse" cx="246.254" cy="167.834" r="6.831" id="gradient-0" gradientTransform="matrix(10.269923, 3.127843, -1.637501, 5.376554, -2026.460774, -1528.198849)">
+      <stop offset="0" style="stop-color: rgb(255, 255, 255)"/>
+      <stop offset="1" style="stop-color: rgb(56.687% 56.687% 56.687%)"/>
+    </radialGradient>
+  </defs>
+  <line style="fill: none; stroke-width: 3px; stroke: rgb(121, 108, 108);" x1="260.121" y1="361.071" x2="260" y2="168.008"/>
+  <polygon style="fill: rgb(166, 166, 166);" points="260 120 280 180 260 168.028 240 180"/>
+  <line style="fill: none; stroke-width: 3px; stroke: rgb(121, 108, 108);" x1="260" y1="320" x2="280" y2="340"/>
+  <line style="fill: none; stroke-width: 3px; stroke: rgb(121, 108, 108);" x1="260" y1="340" x2="280" y2="360"/>
+  <line style="fill: none; stroke-width: 3px; stroke: rgb(121, 108, 108);" x1="260" y1="360" x2="280" y2="380"/>
+  <line style="fill: none; stroke-width: 3px; stroke: rgb(121, 108, 108); transform-box: fill-box; transform-origin: 50% 50%;" x1="240" y1="340" x2="260" y2="320" transform="matrix(-1, 0, 0, -1, -0.000039, 0.000017)"/>
+  <line style="fill: none; stroke-width: 3px; stroke: rgb(121, 108, 108); transform-box: fill-box; transform-origin: 50% 50%;" x1="240" y1="360" x2="260" y2="340" transform="matrix(-1, 0, 0, -1, -0.000039, 0.000011)"/>
+  <line style="fill: none; stroke-width: 3px; stroke: rgb(121, 108, 108); transform-box: fill-box; transform-origin: 50% 50%;" x1="240" y1="380" x2="260" y2="360" transform="matrix(-1, 0, 0, -1, -0.000039, 0.000004)"/>
+  <polygon style="stroke-linejoin: bevel; stroke-width: 2px; fill: url(&quot;#gradient-0&quot;);" points="252.049 167.347 245.337 171.13 259 129.211"/>
+</svg>
