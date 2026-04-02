@@ -42,6 +42,7 @@ void debug_console_update(WorldState* world) {
 
     // Ввод текста
     for (int key = 32; key <= 126; key++) { // печатаемые символы
+        if (key == KEY_GRAVE) continue; // пропускаем клавишу открытия консоли
         if (IsKeyPressed(key) && input_cursor < MAX_INPUT_LEN - 1) {
             console_add_char((char)key);
         }
