@@ -8,6 +8,7 @@
 #include "logic_bomb.h"
 #include "logic_arrow.h"
 #include "draw.h"
+#include "draw_ascii.h"
 #include "draw_warrior.h"
 #include "draw_archer.h"
 #include "draw_worker.h"
@@ -70,6 +71,7 @@ int main(void) {
     debug_console_init();
     particles_init(&g_particles);
     menu_init(&g_menu);
+    ascii_init();
 
     WorldState* world = gen_world_default();
     
@@ -155,6 +157,11 @@ int main(void) {
                             g_camera.target.y = player->y + 16;
                         }
                     }
+                }
+                
+                // Переключение режима ASCII на 'M'
+                if (IsKeyPressed(KEY_M)) {
+                    ascii_toggle_mode();
                 }
                 
                 // Обновление камеры
@@ -296,43 +303,50 @@ int main(void) {
 
         BeginDrawing();
         
-        // Отрисовка игрового мира (кроме меню)
-        if (game_state != GAME_STATE_MENU) {
-            // Сначала рисуем фон вне камеры (чёрный для областей за пределами мира)
-            ClearBackground(BLACK);
-            
-            // Используем камеру для отрисовки мира
-            BeginMode2D(g_camera);
-            
-            draw_background(world);
-            draw_blocks(world);
-            draw_dropped_items(world);
-            draw_warrior_all(world, frame_counter, world->local_player_id);
-            draw_archer_all(world, frame_counter, world->local_player_id);
-            draw_worker_all(world, frame_counter, world->local_player_id);
-            draw_bomb_all(world, frame_counter);
-            draw_arrow_all(world, frame_counter);
-            particles_draw(&g_particles);
-            
-            draw_debug_vectors(world);
-            
-            EndMode2D();
-            
-            // UI рисуется без камеры (в экранных координатах)
-            draw_ui(world);
-            
-            if (debug_console_open) {
-                draw_debug_console();
-            }
+        // Проверка режима ASCII
+        if (ascii_is_enabled() && game_state == GAME_STATE_PLAYING) {
+            // ASCII рендеринг
+            EndDrawing(); // Завершаем обычный кадр перед ASCII выводом
+            ascii_render(world);
         } else {
-            // В меню тоже чёрный фон
-            ClearBackground(BLACK);
-        }
-        
-        // Отрисовка меню поверх всего
-        menu_render(&g_menu, world);
+            // Отрисовка игрового мира (кроме меню)
+            if (game_state != GAME_STATE_MENU) {
+                // Сначала рисуем фон вне камеры (чёрный для областей за пределами мира)
+                ClearBackground(BLACK);
+                
+                // Используем камеру для отрисовки мира
+                BeginMode2D(g_camera);
+                
+                draw_background(world);
+                draw_blocks(world);
+                draw_dropped_items(world);
+                draw_warrior_all(world, frame_counter, world->local_player_id);
+                draw_archer_all(world, frame_counter, world->local_player_id);
+                draw_worker_all(world, frame_counter, world->local_player_id);
+                draw_bomb_all(world, frame_counter);
+                draw_arrow_all(world, frame_counter);
+                particles_draw(&g_particles);
+                
+                draw_debug_vectors(world);
+                
+                EndMode2D();
+                
+                // UI рисуется без камеры (в экранных координатах)
+                draw_ui(world);
+                
+                if (debug_console_open) {
+                    draw_debug_console();
+                }
+            } else {
+                // В меню тоже чёрный фон
+                ClearBackground(BLACK);
+            }
+            
+            // Отрисовка меню поверх всего
+            menu_render(&g_menu, world);
 
-        EndDrawing();
+            EndDrawing();
+        }
 
         frame_counter++;
     }

@@ -12,7 +12,7 @@ CFLAGS_RELEASE := -O2 -DNDEBUG -flto
 
 # Основная игра (клиент с сетевой поддержкой)
 SRCS := main.c logic.c gen.c draw.c sound.c \
-        draw_warrior.c draw_archer.c draw_worker.c draw_bomb.c draw_arrow.c draw_ui.c \
+        draw_warrior.c draw_archer.c draw_worker.c draw_bomb.c draw_arrow.c draw_ui.c draw_ascii.c \
         debug_console.c \
         logic_worker.c logic_warrior.c logic_archer.c logic_bomb.c logic_arrow.c \
         logic_physics.c logic_flags.c logic_items.c \
