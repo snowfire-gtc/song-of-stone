@@ -184,8 +184,16 @@ static void console_execute_command(WorldState* world, const char* cmd) {
         TraceLog(LOG_INFO, "Debug mode OFF");
     }
     else if (strcmp(cmd, "help") == 0) {
-        TraceLog(LOG_INFO, "Commands: pos, inv, block x y, gravity f, genitem type amt,");
-        TraceLog(LOG_INFO, "          destroy x y, debug on/off, help");
+        TraceLog(LOG_INFO, "=== Available Commands ===");
+        TraceLog(LOG_INFO, "pos                  - Show player position");
+        TraceLog(LOG_INFO, "inv                  - Show player inventory");
+        TraceLog(LOG_INFO, "block x y            - Show block type at coordinates");
+        TraceLog(LOG_INFO, "gravity f            - Set gravity value");
+        TraceLog(LOG_INFO, "genitem type amt     - Generate items (type, amount)");
+        TraceLog(LOG_INFO, "destroy x y          - Destroy block at coordinates");
+        TraceLog(LOG_INFO, "debug on/off         - Toggle debug mode");
+        TraceLog(LOG_INFO, "help                 - Show this help message");
+        TraceLog(LOG_INFO, "========================");
     }
     else {
         TraceLog(LOG_WARNING, "Unknown command: %s", cmd);
