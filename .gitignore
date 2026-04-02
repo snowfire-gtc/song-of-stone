@@ -1,1 +1,1 @@
-Nothing should be ignored in this case, as only a source code file (`src/debug_console.c`) was modified and there are no build artifacts, dependencies, or temporary files in the changes.
+(src/debug_console.c)
