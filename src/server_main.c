@@ -12,18 +12,28 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/select.h>
+
+#define DEDICATED_SERVER
 
 #include "common_game.h"
 #include "net_server.h"
 #include "logic.h"
+#include "gen.h"
 
 #define SERVER_PORT 27015
 #define TICK_RATE 60
 #define SAVE_INTERVAL 300  // Сохранение каждые 5 минут
+#define WORLD_WIDTH 256
+#define WORLD_HEIGHT 128
+#define SEED_RANDOM ((uint32_t)time(NULL))
+#define CHARACTER_MAX_HP PLAYER_MAX_HP
+#define DIFFICULTY_NORMAL 1
+#define GAME_VERSION "1.0.0"
 
 static volatile int running = 1;
 static GameServer server;
-static World world;
+static WorldState world_state;
 static ServerConfig config;
 
 void signal_handler(int sig) {
@@ -35,12 +45,24 @@ int load_or_create_world(const char* filename) {
     FILE* f = fopen(filename, "rb");
     if (f) {
         printf("Загрузка мира из %s...\n", filename);
-        fread(&world, sizeof(World), 1, f);
+        fread(&world_state, sizeof(WorldState), 1, f);
         fclose(f);
         return 1;
     } else {
         printf("Мир не найден, генерация нового...\n");
-        world_generate(&world, WORLD_WIDTH, WORLD_HEIGHT, SEED_RANDOM);
+        gen_init_noise(SEED_RANDOM);
+        WorldState* generated = gen_world_procedural(SEED_RANDOM, WORLD_WIDTH, WORLD_HEIGHT);
+        if (generated) {
+            world_state = *generated;
+            free(generated);
+        } else {
+            // Fallback to default world
+            WorldState* def = gen_world_default();
+            if (def) {
+                world_state = *def;
+                free(def);
+            }
+        }
         return 0;
     }
 }
@@ -51,7 +73,7 @@ int save_world(const char* filename) {
         perror("Не удалось сохранить мир");
         return 0;
     }
-    fwrite(&world, sizeof(World), 1, f);
+    fwrite(&world_state, sizeof(WorldState), 1, f);
     fclose(f);
     printf("Мир сохранён в %s\n", filename);
     return 1;
@@ -85,7 +107,8 @@ void process_console_command(const char* input) {
     else if (strcmp(cmd, "status") == 0) {
         printf("\n=== Статус сервера ===\n");
         printf("Игроков: %d/%d\n", server.client_count, MAX_CLIENTS);
-        printf("Время в игре: %d:%02d\n", server.game_time / 3600, (server.game_time % 3600) / 60);
+        int game_time_int = (int)server.game_time;
+        printf("Время в игре: %d:%02d\n", game_time_int / 3600, (game_time_int % 3600) / 60);
         printf("Погода: %s\n", server.weather == WEATHER_RAIN ? "дождь" : 
                               server.weather == WEATHER_SNOW ? "снег" : "ясно");
         printf("Тиков обработано: %lu\n", server.total_ticks);
@@ -98,10 +121,10 @@ void process_console_command(const char* input) {
         for (int i = 0; i < MAX_CLIENTS; i++) {
             if (server.clients[i].connected && !server.clients[i].is_bot) {
                 Character* c = &server.characters[i];
-                printf("  [%d] %s (Команда: %s, HP: %d/%d, Счёт: %d)\n",
+                printf("  [%d] %s (Команда: %s, HP: %d/%d)\n",
                        i, c->name,
                        c->team == TEAM_BLUE ? "Синие" : "Красные",
-                       c->hp, CHARACTER_MAX_HP, c->score);
+                       c->hp, CHARACTER_MAX_HP);
                 count++;
             }
         }
