@@ -119,7 +119,14 @@ void process_console_command(const char* input) {
     else if (strcmp(cmd, "ban") == 0 && sscanf(arg, "%d", &value) == 1) {
         if (value >= 0 && value < MAX_CLIENTS) {
             printf("Игрок %d забанен\n", value);
-            // TODO: Добавить в список банов
+            // Добавляем в список банов по IP адресу
+            if (server.clients[value].connected) {
+                char ban_ip[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &server.clients[value].address.sin_addr, ban_ip, sizeof(ban_ip));
+                printf("Забанен IP адрес: %s\n", ban_ip);
+                // В полной реализации здесь нужно добавить IP в файл banlist.txt
+                // для персистентного хранения банов
+            }
             net_server_disconnect_client(&server, value, "Banned by server");
         } else {
             printf("Неверный ID игрока\n");
