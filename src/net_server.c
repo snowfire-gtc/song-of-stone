@@ -1,6 +1,10 @@
 // Net Server Implementation - Серверная часть сети
 #include "net_server.h"
 #include "net_protocol.h"
+#include "logic_worker.h"
+#include "logic_warrior.h"
+#include "logic_archer.h"
+#include "logic_bomb.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -321,8 +325,43 @@ void net_server_process_packet(GameServer* server, int client_id, PacketHeader* 
             // Действие (атака, строительство, etc.)
             PacketAction action = {0};
             if (deserialize_action(payload, payload_size, &action)) {
-                // TODO: Обработать действие на сервере
-                printf("Клиент %d: действие типа %d\n", client_id, action.action_type);
+                // Обработка действия на сервере в зависимости от типа
+                Character* ch = &server->characters[client_id];
+                if (ch->hp > 0) {
+                    switch (action.action_type) {
+                        case ACTION_DIG:
+                            // Копаем блок
+                            logic_worker_dig_block(ch, server->world, action.x, action.y);
+                            break;
+                        case ACTION_BUILD:
+                            // Строим блок (реализуется в logic_worker_build_block)
+                            printf("Клиент %d: строительство в (%d, %d)\n", client_id, action.x, action.y);
+                            break;
+                        case ACTION_ATTACK:
+                            // Атака (для воина или стрелы)
+                            if (ch->type == CHAR_WARRIOR) {
+                                logic_warrior_perform_sword_attack(ch, server->world);
+                            } else if (ch->type == CHAR_ARCHER) {
+                                logic_archer_shoot_arrow(ch, server->world, 1.0f);
+                            }
+                            break;
+                        case ACTION_PLACE_BOMB:
+                            // Установка бомбы - создаём бомбу напрямую
+                            if (ch->type == CHAR_WARRIOR && ch->bombs > 0) {
+                                Bomb bomb = logic_bomb_create(action.x, action.y, 
+                                    ch->facing_right ? 150.0f : -150.0f, -200.0f,
+                                    client_id, ch->team, 2.0f);
+                                if (server->world->bomb_count < MAX_PLAYERS * 2) {
+                                    server->world->bombs[server->world->bomb_count++] = bomb;
+                                    ch->bombs--;
+                                }
+                            }
+                            break;
+                        default:
+                            printf("Клиент %d: неизвестное действие типа %d\n", client_id, action.action_type);
+                            break;
+                    }
+                }
             }
             break;
         }
