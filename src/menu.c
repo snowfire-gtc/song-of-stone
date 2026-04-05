@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 // Цвета UI
 #define MENU_BG_COLOR (Color){0, 0, 0, 200}

@@ -133,8 +133,16 @@ void client_send_input(GameClient* client, PlayerInput* input) {
     PacketHeader header;
     init_packet_header(&header, PKT_INPUT, 0, client->packets_sent);
     
+    // Convert PlayerInput to PacketInput for serialization
+    PacketInput pkt_input = {0};
+    pkt_input.left = input->move_left;
+    pkt_input.right = input->move_right;
+    pkt_input.jump = input->jump;
+    pkt_input.action = input->attack;
+    pkt_input.secondary = input->build;
+    
     uint8_t payload[64];
-    size_t payload_size = serialize_input(input, payload, sizeof(payload));
+    size_t payload_size = serialize_input(&pkt_input, payload, sizeof(payload));
     
     uint8_t buffer[512];
     size_t size = serialize_packet(&header, payload, payload_size, buffer, sizeof(buffer));

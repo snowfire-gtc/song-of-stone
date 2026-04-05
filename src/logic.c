@@ -3,6 +3,7 @@
 #include "particles.h"
 #include "sound.h"
 #include <string.h>
+#include <stdlib.h>
 
 extern ParticleSystem g_particles;
 
