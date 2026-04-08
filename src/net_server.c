@@ -292,6 +292,28 @@ void net_server_process_packet(GameServer* server, int client_id, PacketHeader* 
             
             printf("Клиент %d подключился: %s\n", client_id, client->name);
             
+            // Отправить подтверждение подключения (WELCOME)
+            PacketHeader welcome_header;
+            init_packet_header(&welcome_header, PKT_WELCOME, 0, 0);
+            
+            uint8_t welcome_buffer[512];
+            uint16_t player_id = (uint16_t)client_id;
+            const char* server_name = server->config.server_name;
+            size_t name_len = strlen(server_name);
+            
+            // Копируем player_id и server_name в payload
+            uint8_t welcome_payload[256];
+            memcpy(welcome_payload, &player_id, sizeof(player_id));
+            memcpy(welcome_payload + sizeof(player_id), server_name, name_len);
+            
+            size_t welcome_size = serialize_packet(&welcome_header, welcome_payload, 
+                                                    sizeof(player_id) + name_len, 
+                                                    welcome_buffer, sizeof(welcome_buffer));
+            
+            if (welcome_size > 0) {
+                net_server_send_to_client(server, client_id, welcome_buffer, welcome_size);
+            }
+
             // Отправить приветствие
             net_server_send_chat(server, client_id, "Добро пожаловать на сервер!");
             

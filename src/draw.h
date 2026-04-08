@@ -12,8 +12,12 @@ void increment_frame_counter(void);
 // Инициализация шрифтов для UI
 void init_ui_font(void);
 
+// Инициализация и освобождение ресурсов параллакс-фона
+void init_parallax_background(void);
+void unload_parallax_background(void);
+
 // Отрисовка фона (параллакс)
-void draw_background(WorldState* world);
+void draw_background(WorldState* world, Camera2D* camera);
 
 // Отрисовка всех блоков
 void draw_blocks(WorldState* world);
