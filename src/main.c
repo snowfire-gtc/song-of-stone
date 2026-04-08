@@ -75,8 +75,8 @@ int main(void) {
 
     WorldState* world = gen_world_default();
     
-    // Начальное состояние - меню
-    GameState game_state = GAME_STATE_MENU;
+    // Начальное состояние - меню (теперь используем глобальную переменную g_game_state)
+    // Локальная переменная game_state удалена, теперь используется только g_game_state
     bool is_networked = false;
     int local_player_id = 0;
     world->local_player_id = local_player_id;
@@ -117,15 +117,15 @@ int main(void) {
             debug_console_open = false;
         }
         
-        // Обработка состояний игры
-        switch (game_state) {
+        // Обработка состояний игры - используем глобальную переменную g_game_state
+        switch (g_game_state) {
             case GAME_STATE_MENU:
                 menu_update(&g_menu, world, dt);
                 menu_handle_input(&g_menu, world);
                 
                 // Если меню скрыто - переходим к игре
                 if (!g_menu.visible) {
-                    game_state = GAME_STATE_PLAYING;
+                    g_game_state = GAME_STATE_PLAYING;
                 }
                 break;
                 
@@ -138,7 +138,7 @@ int main(void) {
                 
                 // Пауза по ESC
                 if (IsKeyPressed(KEY_ESCAPE)) {
-                    game_state = GAME_STATE_PAUSED;
+                    g_game_state = GAME_STATE_PAUSED;
                     g_menu.visible = true;
                     g_menu.state = MENU_STATE_PAUSE;
                 }
@@ -257,7 +257,7 @@ int main(void) {
                 
                 // Если меню паузы скрыто - возвращаемся к игре
                 if (!g_menu.visible && (g_menu.state == MENU_STATE_PAUSE)) {
-                    game_state = GAME_STATE_PLAYING;
+                    g_game_state = GAME_STATE_PLAYING;
                 }
                 break;
                 
@@ -268,7 +268,7 @@ int main(void) {
                     
                     // Проверка успешного подключения
                     if (client_is_connected(&g_client)) {
-                        game_state = GAME_STATE_PLAYING;
+                        g_game_state = GAME_STATE_PLAYING;
                         is_networked = true;
                         printf("Успешное подключение к локальному серверу\n");
                     }
@@ -278,7 +278,7 @@ int main(void) {
                     connect_timer += dt;
                     if (connect_timer > 5.0) {
                         fprintf(stderr, "Таймаут подключения к локальному серверу\n");
-                        game_state = GAME_STATE_MENU;
+                        g_game_state = GAME_STATE_MENU;
                         g_menu.visible = true;
                         g_is_singleplayer_with_server = false;
                         local_server_shutdown(&g_local_server);
@@ -287,7 +287,7 @@ int main(void) {
                 } else {
                     // Старая логика для multiplayer
                     if (frame_counter > 60) {
-                        game_state = GAME_STATE_PLAYING;
+                        g_game_state = GAME_STATE_PLAYING;
                         is_networked = true;
                     }
                 }
@@ -304,13 +304,13 @@ int main(void) {
         BeginDrawing();
         
         // Проверка режима ASCII
-        if (ascii_is_enabled() && game_state == GAME_STATE_PLAYING) {
+        if (ascii_is_enabled() && g_game_state == GAME_STATE_PLAYING) {
             // ASCII рендеринг
             EndDrawing(); // Завершаем обычный кадр перед ASCII выводом
             ascii_render(world);
         } else {
             // Отрисовка игрового мира (кроме меню)
-            if (game_state != GAME_STATE_MENU) {
+            if (g_game_state != GAME_STATE_MENU) {
                 // Сначала рисуем фон вне камеры (чёрный для областей за пределами мира)
                 ClearBackground(BLACK);
                 
