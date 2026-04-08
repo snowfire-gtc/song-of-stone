@@ -131,10 +131,13 @@ void menu_update(Menu* menu, WorldState* world, double dt) {
                 // В главном меню Esc ничего не делает (приложение не закрывается)
                 break;
             case MENU_STATE_NETWORK:
-            case MENU_STATE_SETTINGS:
             case MENU_STATE_PAUSE:
                 // Из этих состояний возвращаемся в предыдущее
                 menu->state = menu->previous_state;
+                break;
+            case MENU_STATE_SETTINGS:
+                // Из Settings возвращаемся в главное меню
+                menu->state = MENU_STATE_MAIN;
                 break;
             case MENU_STATE_SETTINGS_VIDEO:
             case MENU_STATE_SETTINGS_AUDIO:

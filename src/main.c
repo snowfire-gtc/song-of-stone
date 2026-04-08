@@ -65,6 +65,7 @@ int main(void) {
     init_sound();
     init_ui_font();
     init_ui_textures();
+    init_parallax_background();  // Инициализация параллакс-фона
     draw_warrior_init();
     draw_archer_init();
     draw_worker_init();
@@ -317,7 +318,7 @@ int main(void) {
                 // Используем камеру для отрисовки мира
                 BeginMode2D(g_camera);
                 
-                draw_background(world);
+                draw_background(world, &g_camera);
                 draw_blocks(world);
                 draw_dropped_items(world);
                 draw_warrior_all(world, frame_counter, world->local_player_id);
@@ -366,6 +367,7 @@ int main(void) {
     draw_bomb_unload();
     draw_arrow_unload();
     unload_ui_textures();
+    unload_parallax_background();  // Освобождение ресурсов параллакс-фона
     sound_unload();
     CloseWindow();
     return 0;
