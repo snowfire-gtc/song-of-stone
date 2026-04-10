@@ -49,11 +49,11 @@ static ParallaxLayer parallax_layers[PARALLAX_LAYER_COUNT] = {0};
 // Инициализация текстур параллакс-фона
 void init_parallax_background(void) {
     const char* asset_paths[] = {
-        "assets/textures/background_near.png",
-        "assets/textures/background_middle.png",
-        "assets/textures/background_far.png",
-        "assets/textures/clouds.png",
-        "assets/textures/sky.png"
+        "data/textures/background/background_near.png",
+        "data/textures/background/background_middle.png",
+        "data/textures/background/background_far.png",
+        "data/textures/background/clouds.png",
+        "data/textures/background/sky.png"
     };
     
     const float parallax_factors[] = {0.8f, 0.5f, 0.3f, 0.15f, 0.0f};
