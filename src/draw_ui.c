@@ -14,6 +14,8 @@ static Texture2D heart_texture = {0};
 static Texture2D wood_texture = {0};
 static Texture2D bomb_texture = {0};
 static Texture2D arrow_texture_icon = {0};
+static Texture2D gold_texture = {0};
+static Texture2D oxygen_texture = {0};
 static bool ui_textures_loaded = false;
 
 void init_ui_font(void) {
@@ -25,6 +27,8 @@ void init_ui_textures(void) {
     wood_texture = LoadTexture("data/textures/ui/wood.png");
     bomb_texture = LoadTexture("data/textures/ui/bomb.png");
     arrow_texture_icon = LoadTexture("data/textures/ui/arrow.png");
+    gold_texture = LoadTexture("data/textures/ui/gold.png");
+    oxygen_texture = LoadTexture("data/textures/ui/oxygen.png");
     
     ui_textures_loaded = (heart_texture.id != 0 && wood_texture.id != 0);
     
@@ -38,6 +42,8 @@ void unload_ui_textures(void) {
     if (wood_texture.id != 0) UnloadTexture(wood_texture);
     if (bomb_texture.id != 0) UnloadTexture(bomb_texture);
     if (arrow_texture_icon.id != 0) UnloadTexture(arrow_texture_icon);
+    if (gold_texture.id != 0) UnloadTexture(gold_texture);
+    if (oxygen_texture.id != 0) UnloadTexture(oxygen_texture);
     ui_textures_loaded = false;
 }
 
@@ -89,9 +95,12 @@ void draw_ui(const WorldState* world) {
         snprintf(buf, sizeof(buf), " %d", p->bombs);
         DrawTextEx(ui_font, buf, (Vector2){start_x + spacing * 2 + icon_size + 5, icon_y}, 20, 1, DARKGRAY);
         
-        // Монеты (пока без иконки, можно добавить позже)
-        snprintf(buf, sizeof(buf), "\xE2\x82\xAC%d", p->coins);
-        DrawTextEx(ui_font, buf, (Vector2){start_x + spacing * 3, icon_y}, 20, 1, GOLD);
+        // Монеты с иконкой золота
+        if (gold_texture.id != 0) {
+            DrawTexture(gold_texture, start_x + spacing * 3, icon_y, WHITE);
+        }
+        snprintf(buf, sizeof(buf), " %d", p->coins);
+        DrawTextEx(ui_font, buf, (Vector2){start_x + spacing * 3 + icon_size + 5, icon_y}, 20, 1, GOLD);
     } else {
         // Fallback: текст
         char buf[256];
@@ -102,11 +111,17 @@ void draw_ui(const WorldState* world) {
         DrawTextEx(ui_font, buf, (Vector2){20, 55}, 20, 1, DARKGRAY);
     }
 
-    // Кислород (только под водой)
+    // Кислород (только под водой) с иконкой
     if (p->oxygen < PLAYER_OXYGEN_MAX) {
         char buf[64];
-        snprintf(buf, sizeof(buf), "\xF0\x9F\x92\xA7 %d", p->oxygen);
-        DrawTextEx(ui_font, buf, (Vector2){20, 85}, 18, 1, BLUE);
+        if (oxygen_texture.id != 0) {
+            DrawTexture(oxygen_texture, 20, 85, WHITE);
+            snprintf(buf, sizeof(buf), " %d", p->oxygen);
+            DrawTextEx(ui_font, buf, (Vector2){20 + icon_size + 5, 85}, 18, 1, BLUE);
+        } else {
+            snprintf(buf, sizeof(buf), "\xF0\x9F\x92\xA7 %d", p->oxygen);
+            DrawTextEx(ui_font, buf, (Vector2){20, 85}, 18, 1, BLUE);
+        }
     }
 
     // Счёт по центру сверху
