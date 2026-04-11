@@ -314,7 +314,13 @@ void menu_render_settings(Menu* menu, WorldState* world) {
     }
     
     if (menu_draw_button("Back", (Rectangle){start_x, start_y + 240, btn_width, btn_height}, false)) {
-        menu->state = menu->previous_state;
+        // Возвращаемся в предыдущее меню (не в подменю настроек)
+        // Если previous_state равен MENU_STATE_SETTINGS, значит нужно вернуться ещё на уровень выше
+        if (menu->previous_state == MENU_STATE_SETTINGS) {
+            menu->state = MENU_STATE_MAIN; // По умолчанию возвращаемся в главное меню
+        } else {
+            menu->state = menu->previous_state;
+        }
     }
 }
 
