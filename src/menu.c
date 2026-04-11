@@ -136,8 +136,8 @@ void menu_update(Menu* menu, WorldState* world, double dt) {
                 menu->state = menu->previous_state;
                 break;
             case MENU_STATE_SETTINGS:
-                // Из Settings возвращаемся в главное меню
-                menu->state = MENU_STATE_MAIN;
+                // Из Settings возвращаемся в то состояние, откуда пришли в Settings
+                menu->state = menu->previous_state;
                 break;
             case MENU_STATE_SETTINGS_VIDEO:
             case MENU_STATE_SETTINGS_AUDIO:
@@ -314,12 +314,7 @@ void menu_render_settings(Menu* menu, WorldState* world) {
     }
     
     if (menu_draw_button("Back", (Rectangle){start_x, start_y + 240, btn_width, btn_height}, false)) {
-        MenuState prev = menu->previous_state;
-        // Если previous_state указывает на само Settings, идем в главное меню
-        if (prev == MENU_STATE_SETTINGS) {
-            prev = MENU_STATE_MAIN;
-        }
-        menu->state = prev;
+        menu->state = menu->previous_state;
     }
 }
 
@@ -344,7 +339,8 @@ void menu_render_settings_video(Menu* menu, WorldState* world) {
     DrawText("FPS Limit: 60", start_x, start_y + 50, 20, MENU_TEXT_COLOR);
     
     if (menu_draw_button("Back", (Rectangle){start_x, start_y + 200, 150, 50}, false)) {
-        menu->state = menu->previous_state;
+        menu->state = MENU_STATE_SETTINGS;
+        // Не меняем previous_state, чтобы сохранить информацию о том, откуда пришли в Settings
     }
 }
 
@@ -378,7 +374,7 @@ void menu_render_settings_audio(Menu* menu, WorldState* world) {
     // SetMasterVolume(master_vol); и т.д.
     
     if (menu_draw_button("Back", (Rectangle){start_x, start_y + 200, 150, 50}, false)) {
-        menu->state = menu->previous_state;
+        menu->state = MENU_STATE_SETTINGS;
     }
 }
 
@@ -397,7 +393,7 @@ void menu_render_settings_controls(Menu* menu, WorldState* world) {
     DrawText("Esc - Menu/Pause", 100, 330, 20, MENU_TEXT_COLOR);
     
     if (menu_draw_button("Back", (Rectangle){100, 400, 150, 50}, false)) {
-        menu->state = menu->previous_state;
+        menu->state = MENU_STATE_SETTINGS;
     }
 }
 
@@ -420,7 +416,7 @@ void menu_render_settings_appearance(Menu* menu, WorldState* world) {
     }
     
     if (menu_draw_button("Back", (Rectangle){100, 520, 150, 50}, false)) {
-        menu->state = menu->previous_state;
+        menu->state = MENU_STATE_SETTINGS;
     }
 }
 
@@ -452,9 +448,9 @@ void menu_render_pause(Menu* menu, WorldState* world) {
         // Отключение от сервера
         if (g_is_singleplayer_with_server) {
             local_server_shutdown(&g_local_server);
-            client_shutdown(&g_client);
             g_is_singleplayer_with_server = false;
         }
+        client_shutdown(&g_client);
         menu_toggle(menu);
         g_game_state = GAME_STATE_MENU;
         menu->state = MENU_STATE_MAIN;
