@@ -27,7 +27,7 @@
 #define WORLD_WIDTH 256
 #define WORLD_HEIGHT 128
 #define SEED_RANDOM ((uint32_t)time(NULL))
-#define CHARACTER_MAX_HP PLAYER_MAX_HP
+#define CHARACTER_MAX_HP 6
 #define DIFFICULTY_NORMAL 1
 #define GAME_VERSION "1.0.0"
 
@@ -35,7 +35,7 @@ static volatile int running = 1;
 static GameServer server;
 static WorldState world_state;
 static ServerConfig config;
-static uint32_t world_seed = SEED_RANDOM;  // seed для генерации мира (-seed)
+static uint32_t world_seed = 0;  // seed для генерации мира (-seed); 0 = случайный при старте
 
 void signal_handler(int sig) {
     printf("\nПолучен сигнал %d, завершение работы...\n", sig);
@@ -258,7 +258,7 @@ int main(int argc, char** argv) {
             config.pvp_enabled = 0;
         }
         else if (strcmp(argv[i], "-seed") == 0 && i+1 < argc) {
-            world.seed = atoi(argv[++i]);
+            world_seed = (uint32_t)atoi(argv[++i]);
         }
         else if (strcmp(argv[i], "-help") == 0) {
             printf("Использование: %s [опции]\n", argv[0]);
@@ -285,11 +285,16 @@ int main(int argc, char** argv) {
     // Инициализация случайных чисел
     srand(time(NULL));
     
+    // Если seed не задан через -seed, используем случайный
+    if (world_seed == 0) {
+        world_seed = SEED_RANDOM;
+    }
+    
     // Загрузка или создание мира
     load_or_create_world("world.dat");
     
     // Инициализация сервера
-    if (!net_server_init(&server, &config, &world)) {
+    if (!net_server_init(&server, &config, &world_state)) {
         fprintf(stderr, "Ошибка инициализации сервера!\n");
         return 1;
     }
@@ -316,7 +321,7 @@ int main(int argc, char** argv) {
         accumulator += dt;
         
         while (accumulator >= 1.0 / TICK_RATE) {
-            logic_update_server(&server, &world, 1.0 / TICK_RATE);
+            logic_update_server(&server, &world_state, 1.0 / TICK_RATE);
             accumulator -= 1.0 / TICK_RATE;
         }
         
@@ -368,7 +373,8 @@ int main(int argc, char** argv) {
         last_tick = now;
         
         // Небольшая задержка чтобы не грузить CPU
-        usleep(1000);
+        const struct timespec idle_delay = {0, 1000000L}; // 1 мс
+        nanosleep(&idle_delay, NULL);
     }
     
     // Очистка

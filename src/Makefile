@@ -63,7 +63,7 @@ server: $(SERVER_OBJS) | $(BUILD_DIR)
 
 # Сборка Dedicated Server (новый)
 dedicated: $(DEDICATED_OBJS) | $(BUILD_DIR)
-	$(CC) $(DEDICATED_OBJS) -o $(DEDICATED_TARGET) -lpthread
+	$(CC) $(DEDICATED_OBJS) -o $(DEDICATED_TARGET) -lpthread -lm
 
 run: $(TARGET)
 	cd $(BUILD_DIR) && ./song-of-stone
