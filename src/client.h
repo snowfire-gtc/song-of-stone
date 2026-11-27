@@ -15,6 +15,18 @@
 
 #define CLIENT_TICK_RATE 60
 #define INTERPOLATION_DELAY 0.1f  // задержка интерполяции (сек)
+#define SNAPSHOT_BUFFER_SIZE 8    // количество снапшотов-кейрфреймов для интерполяции
+
+// Ключ интерполяции: снимок позиций персонажей на момент получения снапшота
+typedef struct {
+    uint32_t tick;      // виртуальное время сервера (мс)
+    float recv_time;    // локальное время получения (GetTime)
+    int count;          // число персонажей в снимке
+    struct {
+        int id;
+        float x, y;     // целевая позиция (из снапшота)
+    } chars[MAX_CHARACTERS];
+} SnapshotKeyframe;
 
 typedef struct {
     int socket_fd;
@@ -50,6 +62,9 @@ typedef struct {
     float interpolation_delay;
     uint32_t last_snapshot_tick;
     uint32_t pending_snapshot_tick;
+    SnapshotKeyframe keyframes[SNAPSHOT_BUFFER_SIZE]; // кольцевой буфер кейрфреймов
+    int keyframe_head;   // индекс следующего слота для записи
+    int keyframe_count;  // число заполненных кейрфреймов
 } GameClient;
 
 // Инициализация и завершение

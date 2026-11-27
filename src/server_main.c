@@ -35,6 +35,7 @@ static volatile int running = 1;
 static GameServer server;
 static WorldState world_state;
 static ServerConfig config;
+static uint32_t world_seed = SEED_RANDOM;  // seed для генерации мира (-seed)
 
 void signal_handler(int sig) {
     printf("\nПолучен сигнал %d, завершение работы...\n", sig);
@@ -50,8 +51,8 @@ int load_or_create_world(const char* filename) {
         return 1;
     } else {
         printf("Мир не найден, генерация нового...\n");
-        gen_init_noise(SEED_RANDOM);
-        WorldState* generated = gen_world_procedural(SEED_RANDOM, WORLD_WIDTH, WORLD_HEIGHT);
+        gen_init_noise(world_seed);
+        WorldState* generated = gen_world_procedural(world_seed, WORLD_WIDTH, WORLD_HEIGHT);
         if (generated) {
             world_state = *generated;
             free(generated);
