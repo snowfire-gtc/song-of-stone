@@ -129,7 +129,10 @@ void handle_player_input(int client_sock, PacketInput* pkt) {
 // Игровой цикл сервера
 void* game_loop(void* arg) {
     while (server_running) {
-        usleep(1000000 / TICK_RATE); // ~60 FPS
+        // Переносимая задержка тика (usleep — устаревший BSD-интерфейс,
+        // не виден при строгом -std=c11/_POSIX_C_SOURCE)
+        const struct timespec tick_delay = {0, 1000000000L / TICK_RATE}; // ~60 FPS
+        nanosleep(&tick_delay, NULL);
         
         pthread_mutex_lock(&game_mutex);
         

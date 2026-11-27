@@ -288,34 +288,131 @@ int client_receive_packets(GameClient* client) {
 // Применение снапшота
 void client_apply_snapshot(GameClient* client, PacketSnapshot* snapshot) {
     if (!client || !snapshot) return;
-    
+
     // Проверка порядка снапшотов
     if (snapshot->timestamp <= client->last_snapshot_tick) {
         return; // Устаревший снапшот
     }
-    
+
     client->pending_snapshot_tick = snapshot->timestamp;
-    
+
+    // Сохраняем кейрфрейм для интерполяции (позиции на момент получения)
+    SnapshotKeyframe* kf = &client->keyframes[client->keyframe_head];
+    kf->tick = snapshot->timestamp;
+    kf->recv_time = (float)get_time_seconds();
+    kf->count = 0;
+
     // Обновление персонажей из снапшота
     for (int i = 0; i < snapshot->character_count && i < MAX_CHARACTERS; i++) {
         SnapshotChar* ec = &snapshot->characters[i];
         Character* ch = &client->local_world.characters[i];
-        
+
         // Декодирование дельты
         decode_character_delta(ec, ch);
+        if (ch->player_id == 0) ch->player_id = (int)ec->id;
+
+        // Регистрируем целевую позицию в кейрфрейме
+        if (kf->count < MAX_CHARACTERS) {
+            kf->chars[kf->count].id = (int)ec->id;
+            kf->chars[kf->count].x = (float)ec->x;
+            kf->chars[kf->count].y = (float)ec->y;
+            kf->count++;
+        }
     }
-    
+
+    // Сдвигаем кольцевой буфер кейрфреймов
+    client->keyframe_head = (client->keyframe_head + 1) % SNAPSHOT_BUFFER_SIZE;
+    if (client->keyframe_count < SNAPSHOT_BUFFER_SIZE) {
+        client->keyframe_count++;
+    }
+
     // Обновление времени последнего снапшота
     client->last_snapshot_tick = snapshot->timestamp;
 }
 
-// Интерполяция персонажей
+// Поиск двух соседних кейрфреймов, окружающих render_time
+static bool client_find_keyframe_pair(GameClient* client, double render_time,
+                                      SnapshotKeyframe** out_prev, SnapshotKeyframe** out_next) {
+    SnapshotKeyframe* prev = NULL;
+    SnapshotKeyframe* next = NULL;
+
+    // Обходим кольцевой буфер от старых кейрфреймов к новым
+    int start = (client->keyframe_head - client->keyframe_count + SNAPSHOT_BUFFER_SIZE * 2) % SNAPSHOT_BUFFER_SIZE;
+    for (int i = 0; i < client->keyframe_count; i++) {
+        SnapshotKeyframe* kf = &client->keyframes[(start + i) % SNAPSHOT_BUFFER_SIZE];
+        if (kf->count == 0) continue;
+        if ((double)kf->recv_time <= render_time) {
+            prev = kf;
+        } else {
+            next = kf;
+            break;
+        }
+    }
+
+    if (!prev || !next) return false;
+    *out_prev = prev;
+    *out_next = next;
+    return true;
+}
+
+// Интерполяция персонажей между снапшотами
+// alpha >= 0 — явный коэффициент смешивания последних двух кейрфреймов;
+// alpha < 0 — автоматический расчёт по виртуальному времени рендера
+// (now - interpolation_delay), как в классических сетевых интерполяторах.
 void client_interpolate_characters(GameClient* client, double alpha) {
     if (!client || !client->connected) return;
-    
-    // Плавная интерполяция между последними известными позициями
-    // В полной реализации нужно хранить предыдущее и текущее состояние
-    // Для простоты пока просто копируем позиции
+    if (client->keyframe_count < 2) return;
+
+    SnapshotKeyframe *kf_prev, *kf_next;
+
+    if (alpha >= 0.0) {
+        // Явный alpha: берём две последние записи буфера
+        int start = (client->keyframe_head - client->keyframe_count + SNAPSHOT_BUFFER_SIZE * 2) % SNAPSHOT_BUFFER_SIZE;
+        kf_prev = &client->keyframes[(start + client->keyframe_count - 2) % SNAPSHOT_BUFFER_SIZE];
+        kf_next = &client->keyframes[(start + client->keyframe_count - 1) % SNAPSHOT_BUFFER_SIZE];
+        if (kf_prev->count == 0 || kf_next->count == 0) return;
+        if (alpha > 1.0) alpha = 1.0;
+    } else {
+        // Авто-подбор пары кейрфреймов по виртуальному времени рендера
+        double now = get_time_seconds();
+        double render_time = now - (double)client->interpolation_delay;
+        if (!client_find_keyframe_pair(client, render_time, &kf_prev, &kf_next)) return;
+        double span = (double)kf_next->recv_time - (double)kf_prev->recv_time;
+        if (span <= 0.0) return;
+        alpha = (render_time - (double)kf_prev->recv_time) / span;
+        if (alpha < 0.0) alpha = 0.0;
+        if (alpha > 1.0) alpha = 1.0;
+    }
+
+    // Линейная интерполяция позиций каждого персонажа
+    for (int i = 0; i < kf_next->count; i++) {
+        int id = kf_next->chars[i].id;
+        float tx = kf_next->chars[i].x;
+        float ty = kf_next->chars[i].y;
+
+        // Ищем того же персонажа в предыдущем кейрфрейме
+        bool found_prev = false;
+        float px = tx, py = ty;
+        for (int j = 0; j < kf_prev->count; j++) {
+            if (kf_prev->chars[j].id == id) {
+                px = kf_prev->chars[j].x;
+                py = kf_prev->chars[j].y;
+                found_prev = true;
+                break;
+            }
+        }
+        if (!found_prev) continue; // новый персонаж — без интерполяции
+
+        // Применяем результат к локальному миру
+        for (int k = 0; k < client->local_world.char_count && k < MAX_CHARACTERS; k++) {
+            Character* ch = &client->local_world.characters[k];
+            if ((int)ch->player_id == id) {
+                ch->x = (int)(px + (tx - px) * (float)alpha);
+                ch->y = (int)(py + (ty - py) * (float)alpha);
+                break;
+            }
+        }
+    }
 }
 
 // Основное обновление клиента
@@ -339,4 +436,7 @@ void client_update(GameClient* client, double dt) {
         float latency = (client->last_recv_time - client->last_send_time) * 1000.0f;
         client->avg_latency = client->avg_latency * 0.9f + latency * 0.1f;
     }
+
+    // Интерполяция позиций удалённых персонажей (авто-режим по времени)
+    client_interpolate_characters(client, -1.0);
 }
